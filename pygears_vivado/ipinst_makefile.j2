@@ -1,0 +1,18 @@
+.PHONY : all clean
+all: Makefile.uptodate component.xml
+
+Makefile: {{design_path}} $(PY_SOURCES)
+{{"\t"}}ipgen {{design_path}} {{top_path}} -d {{ip_dir}} -m {{sv_include_path|join(" ")}}
+
+Makefile.uptodate: Makefile
+	make clean
+	touch Makefile.uptodate
+
+component.xml: $(SV_SOURCES)
+{{"\t"}}ipgen {{design_path}} {{top_path}} -d {{ip_dir}} {{sv_include_path|join(" ")}}
+{{"\t"}}@pyvado "source {{ip_dir}}/script/ippack.tcl"
+{{"\t"}}@pyvado "close_project"
+
+clean:
+{{"\t"}}@find . ! -name "Makefile" -type f -exec rm -rf {} +
+{{"\t"}}@find . ! \( -name "." -or -name ".." \) -type d -exec rm -rf {} +

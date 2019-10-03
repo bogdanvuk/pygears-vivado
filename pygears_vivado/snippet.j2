@@ -1,0 +1,71 @@
+{%- set RBR = "{" %}
+{%- set LBR = "}" %}
+
+{% macro ip_config(ipinst, cfg) -%}
+set_property -dict [ list \
+  {% for name, value in cfg.items() %}
+    CONFIG.{{name}} {{RBR}}{{value}}{{LBR}} \
+  {% endfor %}
+] [get_ips {{ipinst}}]
+{%- endmacro %}
+
+{% macro ip_declare(ipname, iplib, ipinst) -%}
+set {{ipinst}} [create_bd_cell -type ip -vlnv {{iplib}}:{{ipname}} {{ipinst}}]
+{%- endmacro %}
+
+{% macro ip_inst(ipname, iplib, ipinst, cfg) -%}
+{{ ip_declare(ipname, iplib, ipinst) }}
+
+  {% if cfg|length > 0 -%}
+set_property -dict [ list \
+    {% for name, value in cfg.items() -%}
+      {{name|indent(4,True)}} {{RBR}}{{value}}{{LBR}} \
+    {% endfor %}
+] ${{ipinst}}
+{% endif %}
+
+{%- endmacro %}
+
+{% macro intf_connect(producer, consumer) -%}
+connect_bd_intf_net [get_bd_intf_pins {{producer}}] [get_bd_intf_pins {{consumer}}]
+{%- endmacro %}
+
+
+{% macro prjgen(name, prjdir, files=None, part=None, top=None) -%}
+
+{% if part == None %}
+create_project -force {{name}} {{prjdir}}
+{% else %}
+create_project -force -part {{part}} {{name}} {{prjdir}}
+{% endif %}
+
+{% if files %}
+add_files -norecurse {{files|join(" ")}}
+{% endif %}
+
+{% if top %}
+set_property top {{top}} [current_fileset]
+{% endif %}
+update_compile_order -fileset sources_1
+{%- endmacro %}
+
+{% macro ip_inst(ipinst, ipname, ipdir, prjdir, params, part=None) -%}
+
+{{ prjgen("ipinst", prjdir) }}
+
+create_ip -name {{ipname}} -vendor xilinx.com -library ip -module_name {{ipinst}} -dir {{ipdir}}
+
+{% if params|length > 0 -%}
+{{ ip_config(ipinst, params) }}
+{% endif %}
+
+generate_target {instantiation_template} [get_files {{ipdir}}/{{ipinst}}/{{ipinst}}.xci]
+
+catch { config_ip_cache -export [get_ips -all {{ipinst}}] }
+export_ip_user_files -of_objects [get_files {{ipdir}}/{{ipinst}}/{{ipinst}}.xci] -no_script -sync -force -quiet
+
+create_ip_run [get_files -of_objects [get_fileset sources_1] {{ipdir}}/{{ipinst}}/{{ipinst}}.xci]
+launch_runs {{ipinst}}_synth_1
+wait_on_run {{ipinst}}_synth_1
+
+{%- endmacro %}
