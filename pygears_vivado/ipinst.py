@@ -5,6 +5,7 @@ import glob
 import shutil
 import tempfile
 from pygears import config, find
+from pygears.definitions import CACHE_DIR
 from pygears.hdl.templenv import TemplateEnv
 from pygears_vivado.intf import run
 
@@ -58,10 +59,7 @@ def ipinst(top, resdir=None):
         top = find(top)
 
     if resdir is None:
-        cachedir = os.environ.get(
-            'XDG_CACHE_HOME',
-            os.path.join(os.path.expandvars("$HOME"), '.cache'))
-        resdir = os.path.join(cachedir, 'pygears-vivado', 'ip')
+        resdir = os.path.join(CACHE_DIR, 'vivado', 'ipinst')
 
     prjdir = tempfile.mkdtemp()
 

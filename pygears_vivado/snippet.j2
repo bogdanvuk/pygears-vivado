@@ -69,3 +69,103 @@ launch_runs {{ipinst}}_synth_1
 wait_on_run {{ipinst}}_synth_1
 
 {%- endmacro %}
+
+{% macro sig_list(sigs) -%}
+  {% for i in sigs -%}
+    {% if i['width'] == 1 -%}
+      {{i['modport']}} {{i['name']}},
+    {% else -%}
+      {{i['modport']}} [{{i['width']-1}}:0] {{i['name']}},
+    {% endif -%}
+  {% endfor -%}
+{%- endmacro %}
+
+{% macro signal_intf_list(intfs) -%}
+  {% for i in intfs -%}
+    {% if i['modport'] == 'consumer' %}
+{{ cons_signal_intf(i) }}{{ "" if loop.last else "," }}
+    {% else %}
+{{ prod_signal_intf(i) }}{{ "" if loop.last else "," }}
+    {% endif %}
+  {% endfor %}
+{%- endmacro %}
+
+{% macro cons_signal_intf(intf) -%}
+output logic         {{intf['name']}}_tready,
+input  logic         {{intf['name']}}_tvalid,
+input  logic [{{((intf['width']+7)//8)*8-1}}:0] {{intf['name']}}_tdata 
+{%- endmacro %}
+
+{% macro prod_signal_intf(intf) -%}
+input  logic         {{intf['name']}}_tready,
+output logic         {{intf['name']}}_tvalid,
+output logic [{{((intf['width']+7)//8)*8-1}}:0] {{intf['name']}}_tdata 
+{%- endmacro %}
+
+{% macro intf_list_inst(intfs) -%}
+  {% for i in intfs -%}
+{{ intf_inst(i['name'], i['width'], 1, i['type']) }}
+  {% endfor %}
+{%- endmacro %}
+
+{% macro intf_inst(name, width, size, type) -%}
+  {% if width == 0 %}
+	{% set width = 1 %}
+  {% endif %}
+  dti #(.W_DATA({{width}})) {{name}}{{ "[%d:0]"|format(size-1) if size>1 else "" }}(); // {{type}} ({{width}})
+{%- endmacro %}
+
+{% macro cons_signal_intf_connect(intf) -%}
+assign {{intf['name']}}.valid = {{intf['name']}}_tvalid;
+assign {{intf['name']}}.data = {{intf['name']}}_tdata;
+assign {{intf['name']}}_tready = {{intf['name']}}.ready;
+{%- endmacro %}
+
+{% macro prod_signal_intf_connect(intf) -%}
+assign {{intf['name']}}_tvalid = {{intf['name']}}.valid;
+assign {{intf['name']}}_tdata = {{intf['name']}}.data;
+assign {{intf['name']}}.ready = {{intf['name']}}_tready;
+{%- endmacro %}
+
+{% macro signal_intf_connect(intfs) -%}
+  {% for i in intfs -%}
+    {% if i['modport'] == 'consumer' %}
+{{ cons_signal_intf_connect(i) }}
+    {% else %}
+{{ prod_signal_intf_connect(i) }}
+    {% endif %}
+  {% endfor %}
+{%- endmacro %}
+
+{% macro module_inst(module_name, param_map, inst_name, port_map=None, sig_map=None, rst_name="~aresetn") -%}
+
+  {{module_name}}
+  {%- if param_map|length > 0 %}
+ #(
+    {% for name,value in param_map.items() -%}
+      {%- if name %}
+        {{"."|indent(4,True)}}{{name}}({{value.bit_length()}}'d{{value}}){{ "" if loop.last else "," }}
+      {% else -%}
+        {{value|indent(4,True)}}{{ "" if loop.last else "," }}
+      {% endif -%}
+    {% endfor -%}
+    )
+  {% endif %}
+ {{inst_name}} (
+  {% if sig_map == None %}
+    .clk(aclk),
+    .rst({{rst_name}}),
+  {% else %}
+    {% for name,value in sig_map.items() -%}
+      {{"."|indent(4,True)}}{{name}}({{value}}){{ "" if loop.last and (not port_map) else "," }}
+    {% endfor -%}
+  {% endif %}
+  {% if port_map -%}
+    {% for name,value in port_map.items() -%}
+      {{"."|indent(4,True)}}{{name}}({{value}}){{ "" if loop.last else "," }}
+    {% endfor -%}
+  {% else -%}
+    .*
+  {% endif -%}
+  );
+{% endmacro %}
