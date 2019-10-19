@@ -9,22 +9,22 @@ set_property -dict [ list \
 ] [get_ips {{ipinst}}]
 {%- endmacro %}
 
-{% macro ip_declare(ipname, iplib, ipinst) -%}
-set {{ipinst}} [create_bd_cell -type ip -vlnv {{iplib}}:{{ipname}} {{ipinst}}]
-{%- endmacro %}
+{# {% macro ip_declare(ipname, iplib, ipinst) -%} #}
+{# set {{ipinst}} [create_bd_cell -type ip -vlnv {{iplib}}:{{ipname}} {{ipinst}}] #}
+{# {%- endmacro %} #}
 
-{% macro ip_inst(ipname, iplib, ipinst, cfg) -%}
-{{ ip_declare(ipname, iplib, ipinst) }}
+{# {% macro ip_inst(ipname, iplib, ipinst, cfg) -%} #}
+{# {{ ip_declare(ipname, iplib, ipinst) }} #}
 
-  {% if cfg|length > 0 -%}
-set_property -dict [ list \
-    {% for name, value in cfg.items() -%}
-      {{name|indent(4,True)}} {{RBR}}{{value}}{{LBR}} \
-    {% endfor %}
-] ${{ipinst}}
-{% endif %}
+{#   {% if cfg|length > 0 -%} #}
+{# set_property -dict [ list \ #}
+{#     {% for name, value in cfg.items() -%} #}
+{#       {{name|indent(4,True)}} {{RBR}}{{value}}{{LBR}} \ #}
+{#     {% endfor %} #}
+{# ] ${{ipinst}} #}
+{# {% endif %} #}
 
-{%- endmacro %}
+{# {%- endmacro %} #}
 
 {% macro intf_connect(producer, consumer) -%}
 connect_bd_intf_net [get_bd_intf_pins {{producer}}] [get_bd_intf_pins {{consumer}}]
@@ -49,10 +49,7 @@ set_property top {{top}} [current_fileset]
 update_compile_order -fileset sources_1
 {%- endmacro %}
 
-{% macro ip_inst(ipinst, ipname, ipdir, prjdir, params, part=None) -%}
-
-{{ prjgen("ipinst", prjdir) }}
-
+{% macro ip_inst(ipinst, ipname, ipdir, params) -%}
 create_ip -name {{ipname}} -vendor xilinx.com -library ip -module_name {{ipinst}} -dir {{ipdir}}
 
 {% if params|length > 0 -%}
@@ -67,6 +64,13 @@ export_ip_user_files -of_objects [get_files {{ipdir}}/{{ipinst}}/{{ipinst}}.xci]
 create_ip_run [get_files -of_objects [get_fileset sources_1] {{ipdir}}/{{ipinst}}/{{ipinst}}.xci]
 launch_runs {{ipinst}}_synth_1
 wait_on_run {{ipinst}}_synth_1
+{%- endmacro %}
+
+{% macro ip_inst_prj(ipinst, ipname, ipdir, prjdir, params, part=None) -%}
+
+{{ prjgen("ipinst", prjdir, part=part) }}
+
+{{ ip_inst(ipinst, ipname, ipdir, params) }}
 
 {%- endmacro %}
 

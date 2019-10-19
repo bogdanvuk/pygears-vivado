@@ -1,0 +1,98 @@
+{%- import 'snippet.j2' as snippet -%}
+
+{% set axi_din = dma_ports['din'] %}
+{% set axi_dout = dma_ports['dout'] %}
+
+module {{wrap_module_name}}
+(
+             input         s_axi_lite_aclk,
+             input         m_axi_mm2s_aclk,
+             input         m_axi_s2mm_aclk,
+             input         axi_resetn,
+             input         s_axi_lite_awvalid,
+             output        s_axi_lite_awready,
+             input [9:0]   s_axi_lite_awaddr,
+             input         s_axi_lite_wvalid,
+             output        s_axi_lite_wready,
+             input [31:0]  s_axi_lite_wdata,
+             output [1:0]  s_axi_lite_bresp,
+             output        s_axi_lite_bvalid,
+             input         s_axi_lite_bready,
+             input         s_axi_lite_arvalid,
+             output        s_axi_lite_arready,
+             input [9:0]   s_axi_lite_araddr,
+             output        s_axi_lite_rvalid,
+             input         s_axi_lite_rready,
+             output [31:0] s_axi_lite_rdata,
+             output [1:0]  s_axi_lite_rresp,
+             output [31:0] m_axi_mm2s_araddr,
+             output [7:0]  m_axi_mm2s_arlen,
+             output [2:0]  m_axi_mm2s_arsize,
+             output [1:0]  m_axi_mm2s_arburst,
+             output [2:0]  m_axi_mm2s_arprot,
+             output [3:0]  m_axi_mm2s_arcache,
+             output        m_axi_mm2s_arvalid,
+             input         m_axi_mm2s_arready,
+             input [{{axi_din['width'] - 1}}:0] m_axi_mm2s_rdata,
+             input [1:0]   m_axi_mm2s_rresp,
+             input         m_axi_mm2s_rlast,
+             input         m_axi_mm2s_rvalid,
+             output        m_axi_mm2s_rready,
+             output [31:0] m_axi_s2mm_awaddr,
+             output [7:0]  m_axi_s2mm_awlen,
+             output [2:0]  m_axi_s2mm_awsize,
+             output [1:0]  m_axi_s2mm_awburst,
+             output [2:0]  m_axi_s2mm_awprot,
+             output [3:0]  m_axi_s2mm_awcache,
+             output        m_axi_s2mm_awvalid,
+             input         m_axi_s2mm_awready,
+             output [{{axi_dout['width'] - 1}}:0] m_axi_s2mm_wdata,
+             output [3:0]  m_axi_s2mm_wstrb,
+             output        m_axi_s2mm_wlast,
+             output        m_axi_s2mm_wvalid,
+             input         m_axi_s2mm_wready,
+             input [1:0]   m_axi_s2mm_bresp,
+             input         m_axi_s2mm_bvalid,
+             output        m_axi_s2mm_bready
+);
+
+
+   logic                   mm2s_introut;
+   logic                   s2mm_introut;
+   logic [31:0]            axi_dma_tstvec;
+   logic                   mm2s_prmry_reset_out_n;
+   logic                   s2mm_prmry_reset_out_n;
+
+   logic [{{ceil_div(axi_dout['width'], 8) - 1}}:0]     s_axis_s2mm_tkeep;
+   logic                   s_axis_s2mm_tlast;
+
+   logic [{{ceil_div(axi_din['width'], 8) - 1}}:0]      m_axis_mm2s_tkeep;
+   logic                  m_axis_mm2s_tlast;
+
+{% if axi_dout['w_eot'] == 0 %}
+   assign s_axis_s2mm_tlast = 1;
+{% else %}
+   assign s_axis_s2mm_tlast = &{{intfs[1]['name']}}.data[{{axi_dout['w_data']}}+:{{axi_dout['w_eot']}}];
+{% endif %}
+   assign s_axis_s2mm_tkeep = '1;
+
+{{snippet.intf_list_inst(intfs)|indent(4, True)}}
+
+   dtidma dtidma_i (
+                    .m_axis_mm2s_tdata({{intfs[0]['name']}}.data[{{axi_din['w_data']-1}}:0]),
+                    .m_axis_mm2s_tkeep(m_axis_mm2s_tkeep),
+                    .m_axis_mm2s_tvalid({{intfs[0]['name']}}.valid),
+                    .m_axis_mm2s_tready({{intfs[0]['name']}}.ready),
+                    .m_axis_mm2s_tlast(m_axis_mm2s_tlast),
+                    .s_axis_s2mm_tdata({{intfs[1]['name']}}.data[{{axi_dout['w_data']-1}}:0]),
+                    .s_axis_s2mm_tvalid({{intfs[1]['name']}}.valid),
+                    .s_axis_s2mm_tready({{intfs[1]['name']}}.ready),
+                    .s_axis_s2mm_tlast(s_axis_s2mm_tlast),
+                    .*
+                    );
+
+
+
+{{snippet.module_inst(module_name, param_map, inst_name)|indent(4, True)}}
+
+endmodule

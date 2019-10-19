@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 import glob
 import tempfile
 import inspect
@@ -8,13 +9,16 @@ import jinja2
 from pygears.definitions import CACHE_DIR
 from pygears import registry, config
 from pygears.core.gear import InSig
-from pygears.util.fileio import save_if_changed, save_file
+from pygears.util.fileio import save_if_changed, save_file, copy_file
 from pygears.core.hier_node import HierYielderBase
 from pygears.hdl import list_hdl_files, hdlgen, find_rtl_top
 from pygears.hdl.ipgen import IpgenPlugin
 from pygears.hdl.templenv import TemplateEnv
 from pygears.hdl.sv.generate import SVTemplateEnv
 from pygears.hdl.v.generate import VTemplateEnv
+from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
+from pygears.typing.visitor import TypingVisitorBase
+from pygears.typing import Uint, Int, Bool, Queue, typeof
 
 from .vivmod import SVVivModuleInst
 from .intf import run
@@ -37,7 +41,117 @@ wrap_preproc = {
 }
 
 
-def ippack_script(top, dirs, lang):
+class TypeVisitor(TypingVisitorBase):
+    def __init__(self):
+        self.hier = []
+        self.offset = 0
+        self.regs = []
+        self.ctrl = []
+
+    def func_reg(self, path, offset, width):
+        self.regs.append({
+            'path': path.copy(),
+            'offset': offset,
+            'width': width,
+            'ctrl': deepcopy(self.ctrl)
+        })
+
+    def visit_queue(self, type_, field):
+        self.visit(type_[0], 'data')
+        self.func_reg(self.hier + ['eot'], self.offset, int(type_[1:]))
+        self.offset += int(type_[1:])
+
+    def visit_union(self, type_, field):
+        start_offset = self.offset
+        for i, (t, f) in enumerate(zip(type_.types(), type_.fields)):
+            self.offset = start_offset
+            self.ctrl.append({'val': i, 'path': self.hier + ['ctrl']})
+            self.visit(t, f)
+            self.ctrl.pop()
+
+        self.offset = start_offset + int(type_[0])
+        self.func_reg(self.hier.copy() + ['ctrl'], self.offset, int(type_[1]))
+        self.offset += int(type_[1])
+
+    def visit(self, type_, field=None):
+        if field:
+            self.hier.append(field)
+
+        self.func_reg(self.hier, self.offset, int(type_))
+
+        if issubclass(type_, (Uint, Int, Bool)):
+            self.offset += int(type_)
+        else:
+            super().visit(type_, field)
+
+        if self.hier:
+            self.hier.pop()
+
+
+def drvgen(top, dirs):
+    # out_port = list(top.svgen.out_ports())[0]
+    cmd_type = top.in_ports[0].dtype
+    dout_type = top.out_ports[0].dtype
+
+    v = TypeVisitor()
+    v.visit(cmd_type)
+    regs = v.regs
+    regs = list(filter(lambda r: r['width'] > 0, regs))
+    for r in regs:
+        r['path'] = '_'.join(r['path'])
+        if r['ctrl']:
+            r['ctrl'][0]['path'] = '_'.join(r['ctrl'][0]['path'])
+
+    drv_dir = os.path.join(dirs['driver'], f'{top.basename}_v1_0')
+
+    src_dir = os.path.join(drv_dir, 'src')
+    src_relative_dir = os.path.join('driver', f'{top.basename}_v1_0', 'src')
+    data_dir = os.path.join(drv_dir, 'data')
+
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(
+        os.path.dirname(__file__)),
+                             trim_blocks=True,
+                             lstrip_blocks=True)
+
+    env.globals.update(repr=repr, len=len)
+    drv_files = []
+
+    content = env.get_template("drivers/drvgen_c.j2").render(
+        regs=regs,
+        module_name=top.basename,
+        cfg_words_num=ceil_div(int(cmd_type), 32),
+        dout_words_num=ceil_div(int(dout_type), 32),
+        cmd_type=cmd_type)
+
+    save_file(f'{top.basename}.c', src_dir, content)
+    drv_files.append(os.path.join(src_relative_dir, f'{top.basename}.c'))
+
+    content = env.get_template('drivers/drvgen_h.j2').render(
+        regs=regs, module_name=top.basename, cmd_type=cmd_type)
+    save_file(top.basename + '.h', src_dir, content)
+    drv_files.append(os.path.join(src_relative_dir, f'{top.basename}.h'))
+
+    content = env.get_template('drivers/drvgen_mdd.j2').render(
+        module_name=top.basename)
+    save_file(top.basename + '.mdd', data_dir, content)
+
+    content = env.get_template('drivers/drvgen_tcl.j2').render(
+        module_name=top.basename)
+    save_file(top.basename + '.tcl', data_dir, content)
+
+    copy_file('Makefile', src_dir,
+              os.path.join(os.path.dirname(__file__), 'drivers', 'Makefile'))
+
+    axi_drv_dir = os.path.join(os.path.dirname(__file__), 'drivers',
+                               'axidma_v9_8')
+    for f in os.listdir(axi_drv_dir):
+        copy_file(f, src_dir, os.path.join(axi_drv_dir, f))
+        drv_files.append(os.path.join(src_relative_dir, f))
+
+    return drv_files
+
+
+def ippack_script(top, dirs, lang, axi, prjdir, drv_files, dma_port_cfg):
     base_addr = os.path.dirname(__file__)
 
     hdlgen_map = registry(f'{lang}gen/map')
@@ -48,20 +162,25 @@ def ippack_script(top, dirs, lang):
     for rtl, mod in hdlgen_map.items():
         if isinstance(mod, SVVivModuleInst):
             for f in mod.files:
-                os.remove(os.path.join(dirs['hdl'], os.path.basename(f)))
+                try:
+                    os.remove(os.path.join(dirs['hdl'], os.path.basename(f)))
+                except FileNotFoundError:
+                    pass
 
             xci = glob.glob(f'{mod.ipdir}/*.xci')[0]
-            xci_local = os.path.join(dirs['hdl'], os.path.basename(xci))
-            shutil.copyfile(xci, xci_local)
-            files.append(xci_local)
+            # xci_local = os.path.join(dirs['hdl'], os.path.basename(xci))
+            # shutil.copyfile(xci, xci_local)
+            if xci not in files:
+                files.append(xci)
 
     context = {
-        'prjdir': '/tmp/tmp2daj9zaa',
+        'prjdir': prjdir,
         'hdldir': dirs['hdl'],
         'ipdir': dirs['root'],
         'ip_name': top.basename,
         'wrap_name': wrap_name,
         'files': files,
+        'drv_files': drv_files,
         'description': '"PyGears {} IP"'.format(modinst.module_basename)
     }
 
@@ -69,13 +188,28 @@ def ippack_script(top, dirs, lang):
                              trim_blocks=True,
                              lstrip_blocks=True)
     env.globals.update(zip=zip)
-    # env.add_extension('jinja2.ext.do')
 
-    res = env.get_template('ippack.j2').render(context)
+    if not axi:
+        tmplt = 'ippack.j2'
+    else:
+        tmplt = 'axipack.j2'
+        context['dma_params'] = {
+            'c_include_sg': 0,
+            'c_sg_include_stscntrl_strm': 0,
+            'c_m_axi_mm2s_data_width': dma_port_cfg['din']['width'],
+            'c_m_axis_mm2s_tdata_width': dma_port_cfg['din']['width'],
+            'c_mm2s_burst_size': 8,
+            'c_m_axi_s2mm_data_width': dma_port_cfg['dout']['width'],
+            'c_s_axis_s2mm_tdata_width': dma_port_cfg['dout']['width'],
+            'c_s2mm_burst_size': 8
+        }
+        env.globals.update(os=os)
+
+    res = env.get_template(tmplt).render(context)
     save_file('ippack.tcl', dirs['script'], res)
 
 
-def makefile_script(top, design, dirs, lang, hdl_include, copy):
+def makefile_script(top, design, dirs, lang, hdl_include, copy, axi, prjdir):
 
     seen = set()
     seen_add = seen.add
@@ -91,7 +225,9 @@ def makefile_script(top, design, dirs, lang, hdl_include, copy):
         'design_path': design,
         'top_path': top.name,
         'lang': lang,
-        'copy': copy
+        'copy': copy,
+        'axi': axi,
+        'prjdir': prjdir
     }
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(
@@ -106,7 +242,10 @@ def makefile_script(top, design, dirs, lang, hdl_include, copy):
 
 
 def get_folder_struct(outdir):
-    dirs = {n: os.path.join(outdir, n) for n in ['hdl', 'script', 'doc']}
+    dirs = {
+        n: os.path.join(outdir, n)
+        for n in ['hdl', 'script', 'doc', 'driver']
+    }
     dirs['root'] = outdir
 
     return dirs
@@ -164,11 +303,23 @@ def preproc_hdl(dirs, mapping):
         preproc_file(fn, mapping)
 
 
-def ipgen(top, design, outdir, include, lang, build, copy, makefile):
+def ipgen(top,
+          design,
+          outdir=None,
+          include=[],
+          lang='sv',
+          build=False,
+          copy=True,
+          makefile=True,
+          axi=False,
+          prjdir=None):
 
     if outdir is None:
         rtl_top = find_rtl_top(top)
         outdir = os.path.join(config['vivado/iplib'], rtl_top.basename)
+
+    if prjdir is None:
+        prjdir = tempfile.mkdtemp()
 
     dirs = get_folder_struct(outdir)
     os.makedirs(dirs['root'], exist_ok=True)
@@ -188,10 +339,40 @@ def ipgen(top, design, outdir, include, lang, build, copy, makefile):
                         dirs=dirs,
                         lang=lang,
                         hdl_include=include,
-                        copy=copy)
+                        copy=copy,
+                        axi=axi,
+                        prjdir=prjdir)
     else:
         create_folder_struct(dirs)
-        ippack_script(rtlnode, dirs, lang=lang)
+
+        if axi:
+            dma_port_cfg = {}
+
+            for p, name in zip([rtlnode.in_ports[0], rtlnode.out_ports[0]],
+                                ['din', 'dout']):
+                dtype = p.dtype
+                w_data = int(dtype)
+                w_eot = 0
+                if typeof(dtype, Queue):
+                    w_data = int(dtype.data)
+                    w_eot = int(dtype.eot)
+
+                port_cfg = {
+                    'width': ceil_chunk(ceil_pow2(int(w_data)), 32),
+                    'w_data': w_data,
+                    'w_eot': w_eot
+                }
+                dma_port_cfg[name] = port_cfg
+
+        drv_files = drvgen(rtlnode, dirs)
+        ippack_script(rtlnode,
+                      dirs,
+                      lang=lang,
+                      axi=axi,
+                      prjdir=prjdir,
+                      drv_files=drv_files,
+                      dma_port_cfg=dma_port_cfg
+                      )
 
         preproc_hdl(dirs, mapping=default_preproc)
 
@@ -215,8 +396,20 @@ def ipgen(top, design, outdir, include, lang, build, copy, makefile):
             'param_map': modinst.params
         }
 
-        wrp = TemplateEnv(os.path.dirname(__file__)).render_local(
-            __file__, 'ip_hdl_wrap.j2', context)
+        tenv = TemplateEnv(os.path.dirname(__file__))
+
+        if not axi:
+            tmplt = 'ip_hdl_wrap.j2'
+        else:
+            tmplt = 'ip_axi_hdl_wrap.j2'
+            tenv.jenv.globals.update(ceil_pow2=ceil_pow2,
+                                     ceil_div=ceil_div,
+                                     ceil_chunk=ceil_chunk)
+
+
+            context['dma_ports'] = dma_port_cfg
+
+        wrp = tenv.render_local(__file__, tmplt, context)
         save_file(f'wrap_{os.path.basename(modinst.file_name)}', dirs['hdl'],
                   wrp)
 
@@ -230,5 +423,8 @@ class VivadoIpgenPlugin(IpgenPlugin):
         config.define('vivado/iplib',
                       default=os.path.join(CACHE_DIR, 'vivado', 'iplib'))
         config['ipgen/backend']['vivado'] = ipgen
-        config['ipgen/subparser'].add_parser(
+        vivparser = config['ipgen/subparser'].add_parser(
             'vivado', parents=[config['ipgen/baseparser']])
+
+        vivparser.add_argument('--axi', action='store_true')
+        vivparser.add_argument('--prjdir', type=str)

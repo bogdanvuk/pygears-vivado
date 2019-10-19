@@ -1,0 +1,8 @@
+OPTION psf_version = 2.1;
+
+BEGIN DRIVER {{module_name}}
+	OPTION supported_peripherals = ({{module_name}});
+	OPTION copyfiles = all;
+	OPTION VERSION = 1.0;
+	OPTION NAME = {{module_name}};
+END DRIVER

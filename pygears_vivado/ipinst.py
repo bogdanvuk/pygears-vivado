@@ -80,8 +80,8 @@ def ipinst(top, resdir=None):
     tclpath = os.path.join(prjdir, 'ippack.tcl')
 
     with open(tclpath, 'w') as f:
-        f.write(load_jenv().snippets.ip_inst(ipinst, ipname, resdir, prjdir,
-                                             params))
+        f.write(load_jenv().snippets.ip_inst_prj(ipinst, ipname, resdir,
+                                                 prjdir, params))
 
     ret = run(tclpath)
     if ret:
