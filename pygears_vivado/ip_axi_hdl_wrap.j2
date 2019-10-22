@@ -69,14 +69,14 @@ module {{wrap_module_name}}
    logic [{{ceil_div(axi_din['width'], 8) - 1}}:0]      m_axis_mm2s_tkeep;
    logic                  m_axis_mm2s_tlast;
 
+{{snippet.intf_list_inst(intfs)|indent(4, True)}}
+
 {% if axi_dout['w_eot'] == 0 %}
    assign s_axis_s2mm_tlast = 1;
 {% else %}
    assign s_axis_s2mm_tlast = &{{intfs[1]['name']}}.data[{{axi_dout['w_data']}}+:{{axi_dout['w_eot']}}];
 {% endif %}
    assign s_axis_s2mm_tkeep = '1;
-
-{{snippet.intf_list_inst(intfs)|indent(4, True)}}
 
    dtidma dtidma_i (
                     .m_axis_mm2s_tdata({{intfs[0]['name']}}.data[{{axi_din['w_data']-1}}:0]),
@@ -93,6 +93,6 @@ module {{wrap_module_name}}
 
 
 
-{{snippet.module_inst(module_name, param_map, inst_name)|indent(4, True)}}
+{{snippet.module_inst(module_name, param_map, inst_name, sig_map={'clk': 'm_axi_mm2s_aclk', 'rst': '~axi_resetn'})|indent(4, True)}}
 
 endmodule

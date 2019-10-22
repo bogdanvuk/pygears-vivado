@@ -18,7 +18,7 @@ from pygears.hdl.sv.generate import SVTemplateEnv
 from pygears.hdl.v.generate import VTemplateEnv
 from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.typing.visitor import TypingVisitorBase
-from pygears.typing import Uint, Int, Bool, Queue, typeof
+from pygears.typing import Uint, Int, Bool, Queue, typeof, Integral
 
 from .vivmod import SVVivModuleInst
 from .intf import run
@@ -79,7 +79,7 @@ class TypeVisitor(TypingVisitorBase):
 
         self.func_reg(self.hier, self.offset, int(type_))
 
-        if issubclass(type_, (Uint, Int, Bool)):
+        if typeof(type_, Integral):
             self.offset += int(type_)
         else:
             super().visit(type_, field)
@@ -88,7 +88,7 @@ class TypeVisitor(TypingVisitorBase):
             self.hier.pop()
 
 
-def drvgen(top, dirs):
+def drvgen(top, dirs, dma_port_cfg):
     # out_port = list(top.svgen.out_ports())[0]
     cmd_type = top.in_ports[0].dtype
     dout_type = top.out_ports[0].dtype
@@ -121,6 +121,7 @@ def drvgen(top, dirs):
         module_name=top.basename,
         cfg_words_num=ceil_div(int(cmd_type), 32),
         dout_words_num=ceil_div(int(dout_type), 32),
+        dma_ports=dma_port_cfg,
         cmd_type=cmd_type)
 
     save_file(f'{top.basename}.c', src_dir, content)
@@ -364,7 +365,7 @@ def ipgen(top,
                 }
                 dma_port_cfg[name] = port_cfg
 
-        drv_files = drvgen(rtlnode, dirs)
+        drv_files = drvgen(rtlnode, dirs, dma_port_cfg=dma_port_cfg)
         ippack_script(rtlnode,
                       dirs,
                       lang=lang,

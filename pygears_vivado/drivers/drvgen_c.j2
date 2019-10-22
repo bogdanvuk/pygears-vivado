@@ -28,10 +28,10 @@ int {{module_name}}_init(struct {{module_name}}_cfg* cfg, u32 base_address) {
     cfg->dma_cfg.HasStsCntrlStrm = 0;
     cfg->dma_cfg.HasMm2S = 1;
     cfg->dma_cfg.HasMm2SDRE = 0;
-    cfg->dma_cfg.Mm2SDataWidth = 64;
+    cfg->dma_cfg.Mm2SDataWidth = {{dma_ports['din']['width']}};
     cfg->dma_cfg.HasS2Mm = 1;
     cfg->dma_cfg.HasS2MmDRE = 0;
-    cfg->dma_cfg.S2MmDataWidth = 256;
+    cfg->dma_cfg.S2MmDataWidth = {{dma_ports['dout']['width']}};
     cfg->dma_cfg.HasSg = 0;
     cfg->dma_cfg.Mm2sNumChannels = 1;
     cfg->dma_cfg.S2MmNumChannels = 1;
@@ -59,7 +59,7 @@ int {{module_name}}_send(struct {{module_name}}_cfg* cfg, const u32* cmd) {
         /* Wait */
     }
 
-    Xil_DCacheFlushRange((UINTPTR)cfg, CMD_SIZE);
+    Xil_DCacheFlushRange((UINTPTR)cmd, CMD_SIZE);
     return XAxiDma_SimpleTransfer(&cfg->dma,(UINTPTR) cmd,
              CMD_SIZE, XAXIDMA_DMA_TO_DEVICE);
 }
@@ -73,12 +73,58 @@ int {{module_name}}_receive(struct {{module_name}}_cfg* cfg, u32* data) {
 					DOUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
 }
 
-u32* {{module_name}}_cmd_new() {
-    return malloc(CMD_SIZE);
+int {{module_name}}_call(struct {{module_name}}_cfg* cfg, u32* cmd, u32* data, u32 max_size) {
+	int status;
+  int max_len = DOUT_SIZE*max_size;
+  Xil_DCacheFlushRange((UINTPTR)cmd, CMD_SIZE);
+
+  status = XAxiDma_SimpleTransfer(&cfg->dma, (UINTPTR) data,
+      max_len, XAXIDMA_DEVICE_TO_DMA);
+
+	if (status != XST_SUCCESS) {
+		return XST_FAILURE;
+	}
+
+  status = XAxiDma_SimpleTransfer(&cfg->dma,(UINTPTR) cmd,
+           CMD_SIZE, XAXIDMA_DMA_TO_DEVICE);
+
+	if (status != XST_SUCCESS) {
+		return XST_FAILURE;
+	}
+
+	while ((XAxiDma_Busy(&cfg->dma,XAXIDMA_DEVICE_TO_DMA)) ||
+		(XAxiDma_Busy(&cfg->dma,XAXIDMA_DMA_TO_DEVICE))) {
+			/* Wait */
+	}
+
+	int length = XAxiDma_ReadReg(cfg->dma.RxBdRing[0].ChanBase, XAXIDMA_BUFFLEN_OFFSET);
+
+  Xil_DCacheInvalidateRange((UINTPTR)data, length);
+
+	return length/DOUT_SIZE;
 }
 
-u32* {{module_name}}_dout_new() {
-    return malloc(DOUT_SIZE);
+void *aligned_malloc(size_t required_bytes, size_t alignment) {
+    void *p1;
+    void **p2;
+    int offset = alignment - 1 + sizeof(void*);
+    p1 = malloc(required_bytes + offset);               // the line you are missing
+    p2=(void**)(((size_t)(p1)+offset)&~(alignment-1));  //line 5
+    p2[-1]=p1; //line 6
+    return p2;
+}
+
+void aligned_free( void* p ) {
+    void* p1 = ((void**)p)[-1];         // get the pointer to the buffer we allocated
+    free( p1 );
+}
+
+u32* {{module_name}}_cmd_new(struct {{module_name}}_cfg* cfg) {
+    return aligned_malloc(CMD_SIZE, cfg->dma_cfg.Mm2SDataWidth);
+}
+
+u32* {{module_name}}_dout_new(struct {{module_name}}_cfg* cfg, u32 size) {
+    return aligned_malloc(DOUT_SIZE*size, cfg->dma_cfg.S2MmDataWidth);
 }
 
 u32 {{module_name}}_get_word(u32* cmd, u32 width, u32 offset) {
@@ -86,7 +132,7 @@ u32 {{module_name}}_get_word(u32* cmd, u32 width, u32 offset) {
     u32 cmd_word    = offset / 32;
     u32 word_offset = offset % 32;
     u32 cur_width   = min(32 - word_offset, width);
-    u32 mask        = ((1 << cur_width) - 1) << word_offset;
+    u32 mask        = ((1L << cur_width) - 1) << word_offset;
 
     val = cmd[cmd_word] >> word_offset;
 
@@ -118,7 +164,7 @@ void {{module_name}}_set_word(u32* cmd, u32 val, u32 width, u32 offset) {
     u32 cmd_word = offset / 32;
     u32 word_offset = offset % 32;
     u32 cur_width = min(32 - word_offset, width);
-    u32 mask = ((1 << cur_width) - 1) << word_offset;
+    u32 mask = ((1L << cur_width) - 1) << word_offset;
 
     cmd[cmd_word] &= ~mask;
     cmd[cmd_word] |= val << word_offset;

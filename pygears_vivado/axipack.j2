@@ -33,7 +33,7 @@ set_property value_resolve_type user [ipx::get_user_parameters C_S_AXI_LITE_BASE
 ipgui::add_param -name {C_S_AXI_LITE_BASEADDR} -component [ipx::current_core]
 set_property display_name {C S Axi Lite Baseaddr} [ipgui::get_guiparamspec -name "C_S_AXI_LITE_BASEADDR" -component [ipx::current_core] ]
 set_property widget {hexEdit} [ipgui::get_guiparamspec -name "C_S_AXI_LITE_BASEADDR" -component [ipx::current_core] ]
-set_property value 0xFFFFFFFFF [ipx::get_user_parameters C_S_AXI_LITE_BASEADDR -of_objects [ipx::current_core]]
+set_property value 0xFFFFFFFF [ipx::get_user_parameters C_S_AXI_LITE_BASEADDR -of_objects [ipx::current_core]]
 set_property value_bit_string_length 32 [ipx::get_user_parameters C_S_AXI_LITE_BASEADDR -of_objects [ipx::current_core]]
 set_property enablement_value false [ipx::get_user_parameters C_S_AXI_LITE_BASEADDR -of_objects [ipx::current_core]]
 set_property value_format bitString [ipx::get_user_parameters C_S_AXI_LITE_BASEADDR -of_objects [ipx::current_core]]

@@ -161,7 +161,7 @@ assign {{intf['name']}}.ready = {{intf['name']}}_tready;
     .rst({{rst_name}}),
   {% else %}
     {% for name,value in sig_map.items() -%}
-      {{"."|indent(4,True)}}{{name}}({{value}}){{ "" if loop.last and (not port_map) else "," }}
+      {{"."|indent(4,True)}}{{name}}({{value}}),
     {% endfor -%}
   {% endif %}
   {% if port_map -%}
