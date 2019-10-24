@@ -21,22 +21,32 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
+
+{% set has_din = 'din' in dma_ports %}
+{% set has_dout = 'dout' in dma_ports %}
+
 int {{module_name}}_init(struct {{module_name}}_cfg* cfg, u32 base_address) {
     int status;
     cfg->dma_cfg.DeviceId = 0;
     cfg->dma_cfg.BaseAddr = base_address;
     cfg->dma_cfg.HasStsCntrlStrm = 0;
-    cfg->dma_cfg.HasMm2S = 1;
+    cfg->dma_cfg.HasMm2S = {{ "1" if has_din else "0" }};
+{% if has_din %}
     cfg->dma_cfg.HasMm2SDRE = 0;
     cfg->dma_cfg.Mm2SDataWidth = {{dma_ports['din']['width']}};
-    cfg->dma_cfg.HasS2Mm = 1;
+    cfg->dma_cfg.Mm2sNumChannels = 1;
+    cfg->dma_cfg.Mm2SBurstSize = 8;
+{% endif %}
+
+    cfg->dma_cfg.HasS2Mm = {{ "1" if has_dout else "0" }};
+{% if has_dout %}
     cfg->dma_cfg.HasS2MmDRE = 0;
     cfg->dma_cfg.S2MmDataWidth = {{dma_ports['dout']['width']}};
-    cfg->dma_cfg.HasSg = 0;
-    cfg->dma_cfg.Mm2sNumChannels = 1;
     cfg->dma_cfg.S2MmNumChannels = 1;
-    cfg->dma_cfg.Mm2SBurstSize = 8;
     cfg->dma_cfg.S2MmBurstSize = 2;
+{% endif %}
+
+    cfg->dma_cfg.HasSg = 0;
     cfg->dma_cfg.MicroDmaMode = 0;
     cfg->dma_cfg.AddrWidth = 32;
     cfg->dma_cfg.SgLengthWidth = 14;

@@ -1,4 +1,5 @@
 import os
+import json
 from copy import deepcopy
 import glob
 import tempfile
@@ -152,7 +153,7 @@ def drvgen(top, dirs, dma_port_cfg):
     return drv_files
 
 
-def ippack_script(top, dirs, lang, axi, prjdir, drv_files, dma_port_cfg):
+def ippack_script(top, dirs, lang, prjdir, drv_files, dma_port_cfg):
     base_addr = os.path.dirname(__file__)
 
     hdlgen_map = registry(f'{lang}gen/map')
@@ -190,27 +191,38 @@ def ippack_script(top, dirs, lang, axi, prjdir, drv_files, dma_port_cfg):
                              lstrip_blocks=True)
     env.globals.update(zip=zip)
 
-    if not axi:
+    if not dma_port_cfg:
         tmplt = 'ippack.j2'
     else:
         tmplt = 'axipack.j2'
         context['dma_params'] = {
             'c_include_sg': 0,
             'c_sg_include_stscntrl_strm': 0,
-            'c_m_axi_mm2s_data_width': dma_port_cfg['din']['width'],
-            'c_m_axis_mm2s_tdata_width': dma_port_cfg['din']['width'],
             'c_mm2s_burst_size': 8,
-            'c_m_axi_s2mm_data_width': dma_port_cfg['dout']['width'],
-            'c_s_axis_s2mm_tdata_width': dma_port_cfg['dout']['width'],
             'c_s2mm_burst_size': 8
         }
+
+        if 'din' in dma_port_cfg:
+            context['dma_params'].update(
+                c_m_axi_mm2s_data_width=dma_port_cfg['din']['width'],
+                c_m_axis_mm2s_tdata_width=dma_port_cfg['din']['width'])
+        else:
+            context['dma_params']['c_include_mm2s'] = 0
+
+        if 'dout' in dma_port_cfg:
+            context['dma_params'].update(
+                c_m_axi_s2mm_data_width=dma_port_cfg['dout']['width'],
+                c_s_axis_s2mm_tdata_width=dma_port_cfg['dout']['width'])
+        else:
+            context['dma_params']['c_include_s2mm'] = 0
+
         env.globals.update(os=os)
 
     res = env.get_template(tmplt).render(context)
     save_file('ippack.tcl', dirs['script'], res)
 
 
-def makefile_script(top, design, dirs, lang, hdl_include, copy, axi, prjdir):
+def makefile_script(top, design, dirs, lang, hdl_include, copy, intf, prjdir):
 
     seen = set()
     seen_add = seen.add
@@ -227,7 +239,7 @@ def makefile_script(top, design, dirs, lang, hdl_include, copy, axi, prjdir):
         'top_path': top.name,
         'lang': lang,
         'copy': copy,
-        'axi': axi,
+        'intf': json.dumps(intf),
         'prjdir': prjdir
     }
 
@@ -312,8 +324,11 @@ def ipgen(top,
           build=False,
           copy=True,
           makefile=True,
-          axi=False,
+          intf='["axis", "axis"]',
           prjdir=None):
+
+    if isinstance(intf, str):
+        intf = json.loads(intf)
 
     if outdir is None:
         rtl_top = find_rtl_top(top)
@@ -341,16 +356,18 @@ def ipgen(top,
                         lang=lang,
                         hdl_include=include,
                         copy=copy,
-                        axi=axi,
+                        intf=intf,
                         prjdir=prjdir)
     else:
         create_folder_struct(dirs)
 
-        if axi:
-            dma_port_cfg = {}
+        dma_port_cfg = {}
+        if intf[0] == 'axi' or intf[1] == 'axi':
+            for p, name, i in zip([rtlnode.in_ports[0], rtlnode.out_ports[0]],
+                                  ['din', 'dout'], intf):
+                if i != 'axi':
+                    continue
 
-            for p, name in zip([rtlnode.in_ports[0], rtlnode.out_ports[0]],
-                                ['din', 'dout']):
                 dtype = p.dtype
                 w_data = int(dtype)
                 w_eot = 0
@@ -369,11 +386,9 @@ def ipgen(top,
         ippack_script(rtlnode,
                       dirs,
                       lang=lang,
-                      axi=axi,
                       prjdir=prjdir,
                       drv_files=drv_files,
-                      dma_port_cfg=dma_port_cfg
-                      )
+                      dma_port_cfg=dma_port_cfg)
 
         preproc_hdl(dirs, mapping=default_preproc)
 
@@ -388,25 +403,36 @@ def ipgen(top,
             else:
                 sigs.append(s)
 
+        intfs = list(modinst.port_configs)
+        for i in intfs:
+            dtype = i['type']
+            w_data = i['width']
+            w_eot = 0
+            if typeof(dtype, Queue):
+                w_data = int(dtype.data)
+                w_eot = int(dtype.eot)
+
+            i['w_data'] = w_data
+            i['w_eot'] = w_eot
+
         context = {
             'wrap_module_name': f'wrap_{modinst.module_name}',
             'module_name': modinst.module_name,
             'inst_name': modinst.inst_name,
-            'intfs': list(modinst.port_configs),
+            'intfs': intfs,
             'sigs': sigs,
             'param_map': modinst.params
         }
 
         tenv = TemplateEnv(os.path.dirname(__file__))
 
-        if not axi:
+        if intf[0] == 'axis' and intf[1] == 'axis':
             tmplt = 'ip_hdl_wrap.j2'
         else:
             tmplt = 'ip_axi_hdl_wrap.j2'
             tenv.jenv.globals.update(ceil_pow2=ceil_pow2,
                                      ceil_div=ceil_div,
                                      ceil_chunk=ceil_chunk)
-
 
             context['dma_ports'] = dma_port_cfg
 
@@ -427,5 +453,6 @@ class VivadoIpgenPlugin(IpgenPlugin):
         vivparser = config['ipgen/subparser'].add_parser(
             'vivado', parents=[config['ipgen/baseparser']])
 
-        vivparser.add_argument('--axi', action='store_true')
+        vivparser.add_argument('--intf', type=str, default='axis,axis')
+
         vivparser.add_argument('--prjdir', type=str)

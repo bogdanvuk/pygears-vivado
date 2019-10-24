@@ -4,14 +4,14 @@ PY_SOURCES={{py_sources|join(' ')}}
 all: Makefile.uptodate component.xml
 
 Makefile: {{design_path}} $(PY_SOURCES)
-{{"\t"}}pygears ipgen vivado -d {{design_path}} -t {{top_path}} -o {{ip_dir}}{{" -c" if copy else ""}}{{" --axi" if axi else ""}} -l {{lang}} {{sv_include_path|join(" ")}} --prjdir {{prjdir}} -m
+{{"\t"}}pygears ipgen vivado -d {{design_path}} -t {{top_path}} -o {{ip_dir}}{{" -c" if copy else ""}} --intf '{{intf}}' -l {{lang}} {{sv_include_path|join(" ")}} --prjdir {{prjdir}} -m
 
 Makefile.uptodate: Makefile
 	make clean
 	touch Makefile.uptodate
 
 ./hdl: Makefile
-{{"\t"}}pygears ipgen vivado -d {{design_path}} -t {{top_path}} -o {{ip_dir}}{{" -c" if copy else ""}}{{" --axi" if axi else ""}} -l {{lang}} {{sv_include_path|join(" ")}} --prjdir {{prjdir}}
+{{"\t"}}pygears ipgen vivado -d {{design_path}} -t {{top_path}} -o {{ip_dir}}{{" -c" if copy else ""}} --intf '{{intf}}' -l {{lang}} {{sv_include_path|join(" ")}} --prjdir {{prjdir}}
 
 component.xml: Makefile ./hdl
 {{"\t"}}vivado -mode batch -source {{ip_dir}}/script/ippack.tcl -nolog -nojournal
