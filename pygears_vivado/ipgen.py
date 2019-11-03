@@ -19,7 +19,7 @@ from pygears.hdl.sv.generate import SVTemplateEnv
 from pygears.hdl.v.generate import VTemplateEnv
 from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.typing.visitor import TypingVisitorBase
-from pygears.typing import Uint, Int, Bool, Queue, typeof, Integral
+from pygears.typing import Uint, Int, Bool, Queue, typeof, Integral, Fixp
 
 from .vivmod import SVVivModuleInst
 from .intf import run
@@ -49,17 +49,19 @@ class TypeVisitor(TypingVisitorBase):
         self.regs = []
         self.ctrl = []
 
-    def func_reg(self, path, offset, width):
+    def func_reg(self, path, offset, width, type_):
         self.regs.append({
             'path': path.copy(),
             'offset': offset,
             'width': width,
-            'ctrl': deepcopy(self.ctrl)
+            'ctrl': deepcopy(self.ctrl),
+            'type': type_
         })
 
     def visit_queue(self, type_, field):
         self.visit(type_[0], 'data')
-        self.func_reg(self.hier + ['eot'], self.offset, int(type_[1:]))
+        self.func_reg(self.hier + ['eot'], self.offset, int(type_[1:]),
+                      type_[1:])
         self.offset += int(type_[1:])
 
     def visit_union(self, type_, field):
@@ -71,14 +73,15 @@ class TypeVisitor(TypingVisitorBase):
             self.ctrl.pop()
 
         self.offset = start_offset + int(type_[0])
-        self.func_reg(self.hier.copy() + ['ctrl'], self.offset, int(type_[1]))
+        self.func_reg(self.hier.copy() + ['ctrl'], self.offset, int(type_[1]),
+                      type_[1])
         self.offset += int(type_[1])
 
     def visit(self, type_, field=None):
         if field:
             self.hier.append(field)
 
-        self.func_reg(self.hier, self.offset, int(type_))
+        self.func_reg(self.hier, self.offset, int(type_), type_)
 
         if typeof(type_, Integral):
             self.offset += int(type_)
@@ -114,7 +117,7 @@ def drvgen(top, dirs, dma_port_cfg):
                              trim_blocks=True,
                              lstrip_blocks=True)
 
-    env.globals.update(repr=repr, len=len)
+    env.globals.update(repr=repr, len=len, typeof=typeof, Fixp=Fixp)
     drv_files = []
 
     content = env.get_template("drivers/drvgen_c.j2").render(
@@ -255,10 +258,7 @@ def makefile_script(top, design, dirs, lang, hdl_include, copy, intf, prjdir):
 
 
 def get_folder_struct(outdir):
-    dirs = {
-        n: os.path.join(outdir, n)
-        for n in ['hdl', 'script', 'doc', 'driver']
-    }
+    dirs = {n: os.path.join(outdir, n) for n in ['hdl', 'script', 'driver']}
     dirs['root'] = outdir
 
     return dirs
@@ -361,6 +361,7 @@ def ipgen(top,
     else:
         create_folder_struct(dirs)
 
+        drv_files = []
         dma_port_cfg = {}
         if intf[0] == 'axi' or intf[1] == 'axi':
             for p, name, i in zip([rtlnode.in_ports[0], rtlnode.out_ports[0]],
@@ -382,7 +383,8 @@ def ipgen(top,
                 }
                 dma_port_cfg[name] = port_cfg
 
-        drv_files = drvgen(rtlnode, dirs, dma_port_cfg=dma_port_cfg)
+            drv_files = drvgen(rtlnode, dirs, dma_port_cfg=dma_port_cfg)
+
         ippack_script(rtlnode,
                       dirs,
                       lang=lang,

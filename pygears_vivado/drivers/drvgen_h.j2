@@ -19,17 +19,21 @@ int {{module_name}}_init(struct {{module_name}}_cfg* cfg, u32 base_address);
 u32* {{module_name}}_cmd_new(struct {{module_name}}_cfg* cfg);
 u32* {{module_name}}_dout_new(struct {{module_name}}_cfg* cfg, u32 size);
 
+void {{module_name}}_free( void* p );
+
 int {{module_name}}_receive(struct {{module_name}}_cfg* cfg, u32* data);
 int {{module_name}}_send(struct {{module_name}}_cfg* cfg, const u32* cmd);
 int {{module_name}}_call(struct {{module_name}}_cfg* cfg, u32* cmd, u32* data, u32 max_size);
 
 {% for r in regs -%}
-void set_{{module_name}}_{{r['path']}}(u32* cmd, void* vptr);
-{% if r['width'] <= 32 -%}
-void uset_{{module_name}}_{{r['path']}}(u32* cmd, u32 val);
-u32 uget_{{module_name}}_{{r['path']}}(u32* cmd);
-{% endif %}
-
+void {{module_name}}_set_{{r['path']}}(u32* cmd, void* vptr);
+  {% if r['width'] <= 32 -%}
+void {{module_name}}_set_{{r['path']}}_u32(u32* cmd, u32 val);
+u32 {{module_name}}_get_{{r['path']}}_u32(u32* cmd);
+    {% if typeof(r['type'], Fixp) %}
+void {{module_name}}_set_{{r['path']}}_float(u32* cmd, float val);
+    {% endif %}
+  {% endif %}
 {% endfor %}
 
 #endif

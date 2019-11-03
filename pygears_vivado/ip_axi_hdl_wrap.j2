@@ -41,6 +41,7 @@ module {{wrap_module_name}}
     input         m_axi_mm2s_rvalid,
     output        m_axi_mm2s_rready,
 {% else %}
+    input         {{din['name']}}_aclk,
 {{snippet.signal_intf_list([din])|indent(4, True)}},
 {% endif %}
 
@@ -64,6 +65,7 @@ module {{wrap_module_name}}
     output        m_axi_s2mm_bready
 {% else %}
   {% if dout['w_eot'] > 0 %}
+    input          {{dout['name']}}_aclk,
     input          {{dout['name']}}_tready,
     output         {{dout['name']}}_tvalid,
     output [{{((dout['w_data']+7)//8)*8-1}}:0] {{dout['name']}}_tdata,

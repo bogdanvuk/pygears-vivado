@@ -30,19 +30,20 @@ int {{module_name}}_init(struct {{module_name}}_cfg* cfg, u32 base_address) {
     cfg->dma_cfg.DeviceId = 0;
     cfg->dma_cfg.BaseAddr = base_address;
     cfg->dma_cfg.HasStsCntrlStrm = 0;
+
     cfg->dma_cfg.HasMm2S = {{ "1" if has_din else "0" }};
+    cfg->dma_cfg.Mm2sNumChannels = 1;
 {% if has_din %}
     cfg->dma_cfg.HasMm2SDRE = 0;
     cfg->dma_cfg.Mm2SDataWidth = {{dma_ports['din']['width']}};
-    cfg->dma_cfg.Mm2sNumChannels = 1;
     cfg->dma_cfg.Mm2SBurstSize = 8;
 {% endif %}
 
     cfg->dma_cfg.HasS2Mm = {{ "1" if has_dout else "0" }};
+    cfg->dma_cfg.S2MmNumChannels = 1;
 {% if has_dout %}
     cfg->dma_cfg.HasS2MmDRE = 0;
     cfg->dma_cfg.S2MmDataWidth = {{dma_ports['dout']['width']}};
-    cfg->dma_cfg.S2MmNumChannels = 1;
     cfg->dma_cfg.S2MmBurstSize = 2;
 {% endif %}
 
@@ -65,13 +66,21 @@ int {{module_name}}_init(struct {{module_name}}_cfg* cfg, u32 base_address) {
 }
 
 int {{module_name}}_send(struct {{module_name}}_cfg* cfg, const u32* cmd) {
-    while (XAxiDma_Busy(&cfg->dma, XAXIDMA_DMA_TO_DEVICE)) {
+    int status;
+    Xil_DCacheFlushRange((UINTPTR)cmd, CMD_SIZE);
+
+    status = XAxiDma_SimpleTransfer(&cfg->dma,(UINTPTR) cmd,
+              CMD_SIZE, XAXIDMA_DMA_TO_DEVICE);
+
+    if (status != XST_SUCCESS) {
+        return XST_FAILURE;
+    }
+
+    while ((XAxiDma_Busy(&cfg->dma,XAXIDMA_DMA_TO_DEVICE))) {
         /* Wait */
     }
 
-    Xil_DCacheFlushRange((UINTPTR)cmd, CMD_SIZE);
-    return XAxiDma_SimpleTransfer(&cfg->dma,(UINTPTR) cmd,
-             CMD_SIZE, XAXIDMA_DMA_TO_DEVICE);
+    return XST_SUCCESS;
 }
 
 int {{module_name}}_receive(struct {{module_name}}_cfg* cfg, u32* data) {
@@ -114,7 +123,7 @@ int {{module_name}}_call(struct {{module_name}}_cfg* cfg, u32* cmd, u32* data, u
 	return length/DOUT_SIZE;
 }
 
-void *aligned_malloc(size_t required_bytes, size_t alignment) {
+static void *aligned_malloc(size_t required_bytes, size_t alignment) {
     void *p1;
     void **p2;
     int offset = alignment - 1 + sizeof(void*);
@@ -124,7 +133,7 @@ void *aligned_malloc(size_t required_bytes, size_t alignment) {
     return p2;
 }
 
-void aligned_free( void* p ) {
+void {{module_name}}_free( void* p ) {
     void* p1 = ((void**)p)[-1];         // get the pointer to the buffer we allocated
     free( p1 );
 }
@@ -203,19 +212,27 @@ void {{module_name}}_set(u32* cmd, void* vptr, u32 offset, u32 width) {
 }
 
 {% for r in regs -%}
-void set_{{module_name}}_{{r['path']}}(u32* cmd, void* vptr) {
+
+void {{module_name}}_set_{{r['path']}}(u32* cmd, void* vptr) {
   {% if len(r['ctrl']) > 0 %}
-    uset_{{module_name}}_{{r['ctrl'][0]['path']}}(cmd, {{r['ctrl'][0]['val']}});
+    {{module_name}}_set_{{r['ctrl'][0]['path']}}_u32(cmd, {{r['ctrl'][0]['val']}});
   {% endif %}
     {{module_name}}_set(cmd, vptr, {{r['path'].upper()}}_OFFSET, {{r['path'].upper()}}_WIDTH);
 }
   {% if r['width'] <= 32 -%}
-void uset_{{module_name}}_{{r['path']}}(u32* cmd, u32 val) {
-    set_{{module_name}}_{{r['path']}}(cmd, &val);
+void {{module_name}}_set_{{r['path']}}_u32(u32* cmd, u32 val) {
+    {{module_name}}_set_{{r['path']}}(cmd, &val);
 }
 
-u32 uget_{{module_name}}_{{r['path']}}(u32* cmd) {
+u32 {{module_name}}_get_{{r['path']}}_u32(u32* cmd) {
     return {{module_name}}_get_word(cmd, {{r['path'].upper()}}_WIDTH, {{r['path'].upper()}}_OFFSET);
 }
+
+{% if typeof(r['type'], Fixp) %}
+void {{module_name}}_set_{{r['path']}}_float(u32* cmd, float val) {
+	{{module_name}}_set_{{r['path']}}_u32(cmd, val * (1L << {{ r['type'].fract }}));
+}
+{% endif %}
+
   {% endif -%}
 {% endfor -%}
