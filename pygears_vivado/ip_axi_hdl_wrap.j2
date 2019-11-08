@@ -1,14 +1,21 @@
 {%- import 'snippet.j2' as snippet -%}
 
-{% set axi_din = dma_ports.get('din', None) %}
-{% set axi_dout = dma_ports.get('dout', None) %}
+{% set axi_din = ports['din'] %}
+{% set axi_dout = ports['dout'] %}
+{% set axi_din_type = axi_din['type'] %}
+{% set axi_dout_type = axi_dout['type'] %}
+{% set dma_en = (axi_din_type == "axi" or axi_dout_type == "axi") %}
+{% set bram_en = (axi_din_type == "bram") %}
+{% set axi_lite_cfg = dma_en %}
 {% set din = intfs[0] %}
 {% set dout = intfs[1] %}
 
 module {{wrap_module_name}}
 (
+    input         aresetn,
+
+{% if axi_lite_cfg %}
     input         s_axi_lite_aclk,
-    input         axi_resetn,
     input         s_axi_lite_awvalid,
     output        s_axi_lite_awready,
     input [9:0]   s_axi_lite_awaddr,
@@ -25,7 +32,11 @@ module {{wrap_module_name}}
     input         s_axi_lite_rready,
     output [31:0] s_axi_lite_rdata,
     output [1:0]  s_axi_lite_rresp,
-{% if axi_din %}
+{% endif %}
+
+{% if axi_din_type == "bram" %}
+{{ snippet.axi_slave("s_axi", w_waddr=15) }}
+{% elif axi_din_type == "axi" %}
     input         m_axi_mm2s_aclk,
     output [31:0] m_axi_mm2s_araddr,
     output [7:0]  m_axi_mm2s_arlen,
@@ -45,7 +56,7 @@ module {{wrap_module_name}}
 {{snippet.signal_intf_list([din])|indent(4, True)}},
 {% endif %}
 
-{% if axi_dout %}
+{% if axi_dout_type == "axi" %}
     input         m_axi_s2mm_aclk,
     output [31:0] m_axi_s2mm_awaddr,
     output [7:0]  m_axi_s2mm_awlen,
@@ -64,19 +75,20 @@ module {{wrap_module_name}}
     input         m_axi_s2mm_bvalid,
     output        m_axi_s2mm_bready
 {% else %}
-  {% if dout['w_eot'] > 0 %}
     input          {{dout['name']}}_aclk,
     input          {{dout['name']}}_tready,
     output         {{dout['name']}}_tvalid,
+  {% if dout['w_eot'] > 0 %}
     output [{{((dout['w_data']+7)//8)*8-1}}:0] {{dout['name']}}_tdata,
     output         {{dout['name']}}_tlast
+  {% else %}
+    output [{{axi_din['width']-1}}:0] {{dout['name']}}_tdata
   {% endif %}
 {% endif %}
 
 );
-   logic [31:0]            axi_dma_tstvec;
 
-{% if axi_din %}
+{% if axi_din_type == "axi" %}
    logic                   mm2s_introut;
    logic                   mm2s_prmry_reset_out_n;
 
@@ -84,7 +96,7 @@ module {{wrap_module_name}}
    logic                  m_axis_mm2s_tlast;
 {% endif %}
 
-{% if axi_dout %}
+{% if axi_dout_type == "axi" %}
    logic                   s2mm_prmry_reset_out_n;
    logic                   s2mm_introut;
 
@@ -94,7 +106,7 @@ module {{wrap_module_name}}
 
 {{snippet.intf_list_inst(intfs)|indent(4, True)}}
 
-{% if axi_dout %}
+{% if axi_dout_type == "axi" %}
   {% if axi_dout['w_eot'] == 0 %}
    assign s_axis_s2mm_tlast = 1;
   {% else %}
@@ -103,11 +115,11 @@ module {{wrap_module_name}}
    assign s_axis_s2mm_tkeep = '1;
 {% endif %}
 
-{% if not axi_din %}
+{% if axi_din_type == "axis" %}
 {{ snippet.signal_intf_connect([din])|indent(4, True)}}
 {% endif %}
 
-{% if not axi_dout %}
+{% if axi_dout_type == "axis" %}
   {% if dout['w_eot'] == 0 %}
 assign {{dout['name']}}_tdata = {{dout['name']}}.data;
   {% else %}
@@ -119,24 +131,41 @@ assign {{dout['name']}}.ready = {{dout['name']}}_tready;
 {% endif %}
 
 
+{% if dma_en %}
+   logic [31:0]            axi_dma_tstvec;
+
    dtidma dtidma_i (
-{% if axi_din %}
+  {% if axi_din_type == "axi" %}
                     .m_axis_mm2s_tdata({{din['name']}}.data[{{axi_din['w_data']-1}}:0]),
                     .m_axis_mm2s_tkeep(m_axis_mm2s_tkeep),
                     .m_axis_mm2s_tvalid({{din['name']}}.valid),
                     .m_axis_mm2s_tready({{din['name']}}.ready),
                     .m_axis_mm2s_tlast(m_axis_mm2s_tlast),
-{% endif %}
-{% if axi_dout %}
+  {% endif %}
+  {% if axi_dout_type == "axi" %}
                     .s_axis_s2mm_tdata({{dout['name']}}.data[{{axi_dout['w_data']-1}}:0]),
                     .s_axis_s2mm_tvalid({{dout['name']}}.valid),
                     .s_axis_s2mm_tready({{dout['name']}}.ready),
                     .s_axis_s2mm_tlast(s_axis_s2mm_tlast),
-{% endif %}
+  {% endif %}
                     .*
                     );
+{% endif %}
+
+{% if bram_en %}
+   dtibram dtibram_i (
+                    .bram_en_a(),
+                    .bram_we_a({{din['name']}}.valid),
+                    .bram_addr_a({{din['name']}}.data[{{axi_din['w_addr']-1}}:0]),
+                    .bram_rddata_a({{din['name']}}.data[{{axi_din['w_addr']}}+:{{axi_din['w_data']}}]),
+                    .bram_wrdata_a({{din['name']}}.data[{{axi_din['w_addr']}}+:{{axi_din['w_data']}}]),
+                    .bram_clk_a(),
+                    .bram_rst_a(),
+                    .*
+                    );
+{% endif %}
 
 
-{{snippet.module_inst(module_name, param_map, inst_name, sig_map={'clk': 's_axi_lite_aclk', 'rst': '~axi_resetn'})|indent(4, True)}}
+{{snippet.module_inst(module_name, param_map, inst_name, sig_map={'clk': 's_axi_lite_aclk', 'rst': '~aresetn'})|indent(4, True)}}
 
 endmodule

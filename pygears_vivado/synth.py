@@ -3,8 +3,8 @@ from itertools import islice
 import jinja2
 import os
 from pygears import registry, config
-from pygears.hdl import hdlgen
-from pygears.synth import SynthPlugin, list_hdl_files
+from pygears.hdl import hdlgen, list_hdl_files
+from pygears.synth import SynthPlugin
 from pygears.synth.yosys import synth as yosys_synth
 
 
@@ -73,7 +73,9 @@ def synth(top, outdir, language, yosys_preproc=True, **params):
 
     with open(f'{vivado_prj_path}/timing.txt') as f:
         line = next(islice(f, 2, None))
-        util['path delay'] = float(line.split()[1])
+        elems = line.split()
+        if len(elems) > 1:
+            util['path delay'] = float(line.split()[1])
 
     return util
 
