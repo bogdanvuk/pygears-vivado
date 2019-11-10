@@ -184,7 +184,7 @@ def ippack_script(top, dirs, lang, prjdir, drv_files, dma_port_cfg):
         'files': files,
         'drv_files': drv_files,
         'ports': dma_port_cfg,
-        'description': '"PyGears {} IP"'.format(modinst.module_basename)
+        'description': '"PyGears {} IP"'.format(top.basename)
     }
 
     env = jinja2.Environment(
@@ -455,6 +455,11 @@ def ipgen(
             ceil_pow2=ceil_pow2, ceil_div=ceil_div, ceil_chunk=ceil_chunk)
 
         context['ports'] = dma_port_cfg
+
+        if intf[1] == 'axis':
+            context['pg_clk'] = f'{intfs[1]["name"]}_aclk'
+        elif intf[1] == 'axi':
+            context['pg_clk'] = 's_axi_lite_aclk'
 
         wrp = tenv.render_local(__file__, tmplt, context)
         save_file(f'wrap_{os.path.basename(modinst.file_name)}', dirs['hdl'], wrp)
