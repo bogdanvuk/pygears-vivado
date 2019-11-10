@@ -148,6 +148,7 @@ assign {{dout['name']}}.ready = {{dout['name']}}_tready;
                     .s_axis_s2mm_tready({{dout['name']}}.ready),
                     .s_axis_s2mm_tlast(s_axis_s2mm_tlast),
   {% endif %}
+                    .axi_resetn(aresetn),
                     .*
                     );
 {% endif %}
