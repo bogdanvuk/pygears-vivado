@@ -28,6 +28,7 @@ def synth(top, outdir, language, yosys_preproc=True, **params):
 
     if language == 'sv' or not yosys_preproc or not shutil.which('yosys'):
         files = list_hdl_files(rtl, outdir, language, wrapper=True)
+        top_name = f'wrap_{top_name}'
     else:
         files = [os.path.join(outdir, 'synth.v')]
         files.append(os.path.join(os.path.dirname(__file__), 'yosys_blocks.v'))
