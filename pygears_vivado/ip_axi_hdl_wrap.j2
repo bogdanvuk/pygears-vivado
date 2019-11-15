@@ -82,7 +82,7 @@ module {{wrap_module_name}}
     output [{{((dout['w_data']+7)//8)*8-1}}:0] {{dout['name']}}_tdata,
     output         {{dout['name']}}_tlast
   {% else %}
-    output [{{axi_din['width']-1}}:0] {{dout['name']}}_tdata
+    output [{{axi_dout['width']-1}}:0] {{dout['name']}}_tdata
   {% endif %}
 {% endif %}
 
@@ -154,10 +154,13 @@ assign {{dout['name']}}.ready = {{dout['name']}}_tready;
 {% endif %}
 
 {% if bram_en %}
+
+   logic [14:0] bram_addr_a;
+   assign {{din['name']}}.data[{{axi_din['w_addr']-1}}:0] = bram_addr_a[{{axi_din['w_addr']-1+2}}:2];
    dtibram dtibram_i (
                     .bram_en_a(),
                     .bram_we_a({{din['name']}}.valid),
-                    .bram_addr_a({{din['name']}}.data[{{axi_din['w_addr']-1}}:0]),
+                    .bram_addr_a(bram_addr_a),
                     .bram_rddata_a({{din['name']}}.data[{{axi_din['w_addr']}}+:{{axi_din['w_data']}}]),
                     .bram_wrdata_a({{din['name']}}.data[{{axi_din['w_addr']}}+:{{axi_din['w_data']}}]),
                     .bram_clk_a(),

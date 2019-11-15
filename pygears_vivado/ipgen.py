@@ -380,7 +380,6 @@ def ipgen(
             w_data = int(dtype)
             w_eot = 0
             w_addr = 0
-            ceil_chunk(int(w_data), 8)
             if typeof(dtype, Queue):
                 w_data = int(dtype.data)
                 w_eot = int(dtype.eot)
@@ -389,6 +388,8 @@ def ipgen(
                 w_addr = len(dtype[0])
                 w_data = len(dtype[1])
                 width = ceil_chunk(ceil_pow2(int(w_data)), 32)
+            else:
+                width = ceil_chunk(w_data, 8)
 
             port_cfg = {
                 'width': width,
