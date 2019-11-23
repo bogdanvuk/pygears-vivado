@@ -1,0 +1,78 @@
+#!/bin/bash
+
+set -e
+# run cadence.tcl only in gui mode
+gui="--gui"
+nobuild="";
+other_args="";
+seed=1
+
+cleanup() {
+    rm -r INCA_libs
+    rm -r irun.key
+    rm -r *.log
+    rm -r *.history
+    rm -r ncsim.shm
+    rm -r .simvision
+    rm -r waves.shm
+    rm -r vsim.wlf
+}
+
+usage() {
+    echo "Usage:  run_sim.sh"
+    echo ""
+    echo "  -batch : no gui"
+    echo "  -nobuild : don't rebuild, just run sim"
+    echo "  -seed  : random | <integer value> (default = 1)"
+    echo "  -clean : removed sim. files"
+    echo "  + any other args to pass to sim:"
+    echo " for example: -define VERBOSITY=<0, 1, ...>"
+    echo ""
+}
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|-help)
+            usage
+            exit 1
+            ;;
+        -batch)
+            gui="-R"
+            shift
+            ;;
+        -nobuild)
+            nobuild=1
+            shift
+            ;;
+        -seed)
+            seed=$2
+            shift
+            shift
+            ;;
+        -clean)
+            cleanup
+            shift
+            ;;
+        *)
+            other_args="$other_args $1"
+            shift
+            ;;
+    esac
+done
+
+{% set switch_lookup = {'sv': '-svlog', 'v': '-vlog', 'vh': '-vlog', 'vhd': '-vhdl'} %}
+
+if [ "$nobuild" == "" ]; then
+   xsc {{dti_verif_path}}/sock.c -o {{outdir}}/dpi.so
+   xelab {{top_name}} -s {{top_name}}_sim -sv_lib dpi -debug all -relax \
+       -L work -L xpm -L unisims_ver -L unimacro_ver -L secureip \
+   {% for i in includes %}
+       -i {{i}} \
+   {% endfor %}
+   {% for f in files %}
+       {{ switch_lookup[f.rpartition('.')[-1]] }} {{ f }} \
+   {% endfor %}
+       --log xelab.log
+fi
+
+xsim {{top_name}}_sim $gui -sv_seed $seed -log xsim.log
