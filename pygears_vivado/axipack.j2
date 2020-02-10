@@ -1,10 +1,17 @@
 {%- import 'snippet.j2' as snippet -%}
-{% set axi_din = ports['din'] %}
-{% set axi_dout = ports['dout'] %}
-{% set axi_din_type = axi_din['type'] %}
-{% set axi_dout_type = axi_dout['type'] %}
-{% set dma_en = (axi_din_type == "axi" or axi_dout_type == "axi") %}
-{% set bram_en = (axi_din_type == "bram") %}
+{# {% set axi_din = ports['din'] %} #}
+{# {% set axi_dout = ports['dout'] %} #}
+{# {% set axi_din_type = axi_din['type'] %} #}
+{# {% set axi_dout_type = axi_dout['type'] %} #}
+
+{# {% set dma_en = (axi_din_type == "axi" or axi_dout_type == "axi") %} #}
+
+{% set dma_en = False %}
+{% for p in ports.values() %}
+{% set dma_en = (p["type"] == "axi" or dma_en) %}
+{% endfor %}
+
+{# {% set bram_en = (axi_din_type == "bram") %} #}
 {% set axi_lite_cfg = dma_en %}
 
 {{ snippet.prjgen("ipgen", prjdir, files=files, top=wrap_name) }}
@@ -13,9 +20,9 @@
 {{ snippet.ip_inst("dtidma", "axi_dma", ipdir=os.path.join(prjdir, "ipgen.srcs", "sources_1", "ip"), params=dma_params) }}
 {% endif %}
 
-{% if bram_en %}
-{{ snippet.ip_inst("dtibram", "axi_bram_ctrl", ipdir=os.path.join(prjdir, "ipgen.srcs", "sources_1", "ip"), params=bram_params) }}
-{% endif %}
+{% for name, cfg in bram_params.items() %}
+{{ snippet.ip_inst("dtibram_" + name, "axi_bram_ctrl", ipdir=os.path.join(prjdir, "ipgen.srcs", "sources_1", "ip"), params=cfg) }}
+{% endfor %}
 
 ipx::package_project -import_files -root_dir {{ipdir}}
 

@@ -1,135 +1,75 @@
 {%- import 'snippet.j2' as snippet -%}
 
-{% set axi_din = ports['din'] %}
-{% set axi_dout = ports['dout'] %}
-{% set axi_din_type = axi_din['type'] %}
-{% set axi_dout_type = axi_dout['type'] %}
-{% set dma_en = (axi_din_type == "axi" or axi_dout_type == "axi") %}
-{% set bram_en = (axi_din_type == "bram") %}
+{% set dma_en = False %}
+{% set bram_en = False %}
+{% for p in ports.values() %}
+{% set dma_en = (p["type"] == "axi" or dma_en) %}
+{% set bram_en = (p["type"] == "bram" or bram_en) %}
+{% endfor %}
+
+{# {% set axi_din = ports['din'] %} #}
+{# {% set axi_dout = ports['dout'] %} #}
+{# {% set axi_din_type = axi_din['type'] %} #}
+{# {% set axi_dout_type = axi_dout['type'] %} #}
+
 {% set axi_lite_cfg = dma_en %}
-{% set din = intfs[0] %}
-{% set dout = intfs[1] %}
+{# {% set din = intfs[0] %} #}
+{# {% set dout = intfs[1] %} #}
 
 module {{wrap_module_name}}
 (
     input         aresetn,
-
-{% if axi_lite_cfg %}
-    input         s_axi_lite_aclk,
-    input         s_axi_lite_awvalid,
-    output        s_axi_lite_awready,
-    input [9:0]   s_axi_lite_awaddr,
-    input         s_axi_lite_wvalid,
-    output        s_axi_lite_wready,
-    input [31:0]  s_axi_lite_wdata,
-    output [1:0]  s_axi_lite_bresp,
-    output        s_axi_lite_bvalid,
-    input         s_axi_lite_bready,
-    input         s_axi_lite_arvalid,
-    output        s_axi_lite_arready,
-    input [9:0]   s_axi_lite_araddr,
-    output        s_axi_lite_rvalid,
-    input         s_axi_lite_rready,
-    output [31:0] s_axi_lite_rdata,
-    output [1:0]  s_axi_lite_rresp,
-{% endif %}
-
-{% if axi_din_type == "bram" %}
-{{ snippet.axi_slave("s_axi", w_waddr=15) }}
-{% elif axi_din_type == "axi" %}
-    input         m_axi_mm2s_aclk,
-    output [31:0] m_axi_mm2s_araddr,
-    output [7:0]  m_axi_mm2s_arlen,
-    output [2:0]  m_axi_mm2s_arsize,
-    output [1:0]  m_axi_mm2s_arburst,
-    output [2:0]  m_axi_mm2s_arprot,
-    output [3:0]  m_axi_mm2s_arcache,
-    output        m_axi_mm2s_arvalid,
-    input         m_axi_mm2s_arready,
-    input [{{axi_din['width'] - 1}}:0] m_axi_mm2s_rdata,
-    input [1:0]   m_axi_mm2s_rresp,
-    input         m_axi_mm2s_rlast,
-    input         m_axi_mm2s_rvalid,
-    output        m_axi_mm2s_rready,
-{% else %}
-    input         {{din['name']}}_aclk,
-{{snippet.signal_intf_list([din])|indent(4, True)}},
-{% endif %}
-
-{% if axi_dout_type == "axi" %}
-    input         m_axi_s2mm_aclk,
-    output [31:0] m_axi_s2mm_awaddr,
-    output [7:0]  m_axi_s2mm_awlen,
-    output [2:0]  m_axi_s2mm_awsize,
-    output [1:0]  m_axi_s2mm_awburst,
-    output [2:0]  m_axi_s2mm_awprot,
-    output [3:0]  m_axi_s2mm_awcache,
-    output        m_axi_s2mm_awvalid,
-    input         m_axi_s2mm_awready,
-    output [{{axi_dout['width'] - 1}}:0] m_axi_s2mm_wdata,
-    output [3:0]  m_axi_s2mm_wstrb,
-    output        m_axi_s2mm_wlast,
-    output        m_axi_s2mm_wvalid,
-    input         m_axi_s2mm_wready,
-    input [1:0]   m_axi_s2mm_bresp,
-    input         m_axi_s2mm_bvalid,
-    output        m_axi_s2mm_bready
-{% else %}
-    input          {{dout['name']}}_aclk,
-    input          {{dout['name']}}_tready,
-    output         {{dout['name']}}_tvalid,
-  {% if dout['w_eot'] > 0 %}
-    output [{{((dout['w_data']+7)//8)*8-1}}:0] {{dout['name']}}_tdata,
-    output         {{dout['name']}}_tlast
-  {% else %}
-    output [{{axi_dout['width']-1}}:0] {{dout['name']}}_tdata
-  {% endif %}
-{% endif %}
-
+    input         aclk,
+{{ port_def|join(",\n")|indent(4, True)}}
 );
 
-{% if axi_din_type == "axi" %}
+{% for p in ports.values() %}
+  {% if p["type"] == "axi" %}
+    {% if p["direction"] == "in" %}
    logic                   mm2s_introut;
    logic                   mm2s_prmry_reset_out_n;
 
-   logic [{{ceil_div(axi_din['width'], 8) - 1}}:0]      m_axis_mm2s_tkeep;
+   logic [{{ceil_div(p['width'], 8) - 1}}:0]      m_axis_mm2s_tkeep;
    logic                  m_axis_mm2s_tlast;
-{% endif %}
-
-{% if axi_dout_type == "axi" %}
+   {% else %}
    logic                   s2mm_prmry_reset_out_n;
    logic                   s2mm_introut;
 
-   logic [{{ceil_div(axi_dout['width'], 8) - 1}}:0]     s_axis_s2mm_tkeep;
+   logic [{{ceil_div(p['width'], 8) - 1}}:0]     s_axis_s2mm_tkeep;
    logic                   s_axis_s2mm_tlast;
-{% endif %}
+   {% endif %}
+ {% endif %}
+{% endfor %}
 
-{{snippet.intf_list_inst(intfs)|indent(4, True)}}
+{{snippet.intf_list_inst(intfs.values())|indent(4, True)}}
 
-{% if axi_dout_type == "axi" %}
-  {% if axi_dout['w_eot'] == 0 %}
+{% for p in ports.values() %}
+  {% if p["type"] == "axi" %}
+    {% if p["direction"] == "out" %}
+      {% if axi_dout['w_eot'] == 0 %}
    assign s_axis_s2mm_tlast = 1;
-  {% else %}
+      {% else %}
    assign s_axis_s2mm_tlast = &{{dout['name']}}.data[{{dout['w_data']}}+:{{dout['w_eot']}}];
-  {% endif %}
+      {% endif %}
    assign s_axis_s2mm_tkeep = '1;
-{% endif %}
+    {% endif %}
 
-{% if axi_din_type == "axis" %}
-{{ snippet.signal_intf_connect([din])|indent(4, True)}}
-{% endif %}
-
-{% if axi_dout_type == "axis" %}
-  {% if dout['w_eot'] == 0 %}
+  {% elif p["type"] == "axis" %}
+    {% if p["direction"] == "in" %}
+{{ snippet.signal_intf_connect([intfs[p["name"]]])|indent(4, True)}}
+    {% else %}
+      {% set dout = intfs[p['name']] %}
+      {% if dout['w_eot'] == 0 %}
 assign {{dout['name']}}_tdata = {{dout['name']}}.data;
-  {% else %}
+      {% else %}
 assign {{dout['name']}}_tdata = {{dout['name']}}.data[{{dout['w_data']-1}}:0];
 assign {{dout['name']}}_tlast = &{{dout['name']}}.data[{{dout['w_data']}}+:{{dout['w_eot']}}];
-  {% endif %}
+      {% endif %}
 assign {{dout['name']}}_tvalid = {{dout['name']}}.valid;
 assign {{dout['name']}}.ready = {{dout['name']}}_tready;
-{% endif %}
-
+    {% endif %}
+  {% endif %}
+{% endfor %}
 
 {% if dma_en %}
    logic [31:0]            axi_dma_tstvec;
@@ -153,21 +93,34 @@ assign {{dout['name']}}.ready = {{dout['name']}}_tready;
                     );
 {% endif %}
 
-{% if bram_en %}
+{% for p in ports.values() %}
+  {% if p["type"] == "bram" %}
+
+    {% set din = intfs[p["name"]] %}
 
    logic [14:0] bram_addr_a;
-   assign {{din['name']}}.data[{{axi_din['w_addr']-1}}:0] = bram_addr_a[{{axi_din['w_addr']-1+2}}:2];
-   dtibram dtibram_i (
+   assign {{din['name']}}.data[{{p['w_addr']-1}}:0] = bram_addr_a[{{p['w_addr']-1+2}}:2];
+   dtibram_{{p["name"]}} dtibram_{{p["name"]}}_i (
+                    .s_axi_aclk(aclk),
+                    .s_axi_aresetn(aresetn),
                     .bram_en_a(),
                     .bram_we_a({{din['name']}}.valid),
                     .bram_addr_a(bram_addr_a),
-                    .bram_rddata_a({{din['name']}}.data[{{axi_din['w_addr']}}+:{{axi_din['w_data']}}]),
-                    .bram_wrdata_a({{din['name']}}.data[{{axi_din['w_addr']}}+:{{axi_din['w_data']}}]),
+                    .bram_rddata_a({{din['name']}}.data[{{p['w_addr']}}+:{{p['w_data']}}]),
+                    .bram_wrdata_a({{din['name']}}.data[{{p['w_addr']}}+:{{p['w_data']}}]),
                     .bram_clk_a(),
                     .bram_rst_a(),
-                    .*
+{{axi_intfs.port_map(axi_intfs.AXI_SLAVE, p["name"], "s_axi", waddr=p['w_addr'],
+    wdata={
+        'wdata': 32,
+        'wstrb': 4
+    },
+    bresp=True,
+    raddr=32,
+    rdata=32)|join(",\n")|indent(19, True)}}
                     );
-{% endif %}
+  {% endif %}
+{% endfor %}
 
 
 {{snippet.module_inst(module_name, param_map, inst_name, sig_map={'clk': pg_clk, 'rst': '~aresetn'})|indent(4, True)}}

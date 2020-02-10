@@ -174,7 +174,63 @@ assign {{intf['name']}}.ready = {{intf['name']}}_tready;
   );
 {% endmacro %}
 
-{% macro axi_slave(name, w_raddr=32, w_rdata=32, w_waddr=32, w_wdata=32, last=',') %}
+{% macro axi_slave(name, w_raddr=32, raddr_qos=True, w_rdata=32, w_waddr=32, waddr_qos=True, w_wdata=32, last=',') %}
+  input           {{name}}_aclk,
+  input           {{name}}_aresetn,
+
+  {% if w_waddr > 0 %}
+  /**************** Write Address Channel Signals ****************/
+  input [{{w_waddr-1}}:0]   {{name}}_awaddr,
+  input [2:0]     {{name}}_awprot,
+  input           {{name}}_awvalid,
+  output          {{name}}_awready,
+  input [2:0]     {{name}}_awsize,
+  input [1:0]     {{name}}_awburst,
+  input [3:0]     {{name}}_awcache,
+  input [7:0]     {{name}}_awlen,
+    {% if waddr_qos %}
+  input [0:0]     {{name}}_awlock,
+  input [3:0]     {{name}}_awqos,
+  input [3:0]     {{name}}_awregion,
+    {% endif %}
+  {% endif %}
+  {% if w_wdata > 0 %}
+  /**************** Write Data Channel Signals ****************/
+  input [{{w_wdata-1}}:0]    {{name}}_wdata,
+  input [{{w_wdata//8-1}}:0]   {{name}}_wstrb,
+  input           {{name}}_wvalid,
+  output          {{name}}_wready,
+  input           {{name}}_wlast,
+  {% endif %}
+  /**************** Write Response Channel Signals ****************/
+  output [1:0]    {{name}}_bresp,
+  output          {{name}}_bvalid,
+  input           {{name}}_bready,
+  /**************** Read Address Channel Signals ****************/
+  {% if w_raddr > 0 %}
+  input [{{w_raddr-1}}:0]    {{name}}_araddr,
+  input [2:0]     {{name}}_arprot,
+  input           {{name}}_arvalid,
+  output          {{name}}_arready,
+  input [2:0]     {{name}}_arsize,
+  input [1:0]     {{name}}_arburst,
+  input [3:0]     {{name}}_arcache,
+  input [7:0]     {{name}}_arlen,
+    {% if raddr_qos %}
+  input [0:0]     {{name}}_arlock,
+  input [3:0]     {{name}}_arqos,
+  input [3:0]     {{name}}_arregion,
+    {% endif %}
+  {% endif %}
+  /**************** Read Data Channel Signals ****************/
+  output [{{w_rdata-1}}:0]   {{name}}_rdata,
+  output [1:0]    {{name}}_rresp,
+  output          {{name}}_rvalid,
+  input           {{name}}_rready,
+  output          {{name}}_rlast{{last}}
+{% endmacro %}
+
+{% macro axi_master(name, w_raddr=32, w_rdata=32, w_waddr=32, w_wdata=32, last=',') %}
   input           {{name}}_aclk,
   input           {{name}}_aresetn,
 
