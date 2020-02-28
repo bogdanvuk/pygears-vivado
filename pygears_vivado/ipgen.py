@@ -19,7 +19,7 @@ from pygears.hdl.sv.generate import SVTemplateEnv
 from pygears.hdl.v.generate import VTemplateEnv
 from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.typing.visitor import TypingVisitorBase
-from pygears.typing import Uint, Int, Bool, Queue, typeof, Integral, Fixp, Tuple
+from pygears.typing import Uint, Int, Bool, Queue, typeof, Integral, Fixp, Tuple, Union
 
 from .vivmod import SVVivModuleInst
 from .intf import run
@@ -199,7 +199,7 @@ def ippack_script(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
         tmplt = 'axipack.j2'
 
         for name, cfg in axi_port_cfg.items():
-            if cfg['type'] == 'bram':
+            if cfg['type'] in ['bram', 'bram.req']:
                 context['bram_params'][name] = {
                     'protocol': 'AXI4',
                     'single_port_bram': 1,
@@ -390,6 +390,7 @@ def ipgen(
         axi_port_cfg = {}
         # for p, name, i in zip([rtlnode.in_ports[0], rtlnode.out_ports[0]],
         #                       ['din', 'dout'], intf):
+
         for p, i in zip(rtlnode.in_ports + rtlnode.out_ports, intf):
             dtype = p.dtype
             w_data = int(dtype)
@@ -399,10 +400,16 @@ def ipgen(
                 w_data = int(dtype.data)
                 w_eot = int(dtype.eot)
                 width = ceil_chunk(ceil_pow2(int(w_data)), 32)
-            elif i == "bram" and typeof(dtype, Tuple):
-                w_addr = len(dtype[0])
-                w_data = len(dtype[1])
+            elif (i == 'bram' or i == 'bram.req') and typeof(dtype, Tuple):
+                w_addr = dtype[0].width
+                w_data = dtype[1].width
+
+                if typeof(dtype[1], Union):
+                    w_data -= 1
+
                 width = ceil_chunk(ceil_pow2(int(w_data)), 32)
+            elif i == 'bram.resp':
+                continue
             else:
                 width = ceil_chunk(w_data, 8)
 
@@ -416,6 +423,18 @@ def ipgen(
                 'type': i
             }
             axi_port_cfg[p.basename] = port_cfg
+
+        for p, i in zip(rtlnode.out_ports, intf[len(rtlnode.in_ports):]):
+            dtype = p.dtype
+
+            if i == 'bram.resp':
+                for pi, ii in zip(rtlnode.in_ports, intf):
+                    if ii == 'bram.req':
+                        axi_port_cfg[pi.basename]['resp'] = {
+                            'w_data': dtype.width,
+                            'name': p.basename,
+                            'type': ii
+                        }
 
         if any(cfg['type'] == 'axi' for cfg in axi_port_cfg.values()):
             drv_files = drvgen(rtlnode, dirs, dma_port_cfg=axi_port_cfg)
@@ -455,7 +474,7 @@ def ipgen(
 
         defs = []
         for name, p in axi_port_cfg.items():
-            if p['type'] == 'bram':
+            if p['type'] in ['bram', 'bram.req']:
                 if p['direction'] == 'in':
                     pdefs = axi_intfs.port_def(
                         axi_intfs.AXI_SLAVE,

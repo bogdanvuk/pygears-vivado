@@ -4,7 +4,7 @@
 {% set bram_en = False %}
 {% for p in ports.values() %}
 {% set dma_en = (p["type"] == "axi" or dma_en) %}
-{% set bram_en = (p["type"] == "bram" or bram_en) %}
+{% set bram_en = (p["type"] in ["bram", "bram.req"] or bram_en) %}
 {% endfor %}
 
 {# {% set axi_din = ports['din'] %} #}
@@ -94,20 +94,34 @@ assign {{dout['name']}}.ready = {{dout['name']}}_tready;
 {% endif %}
 
 {% for p in ports.values() %}
-  {% if p["type"] == "bram" %}
+  {% if p["type"] == "bram" or p["type"] == "bram.req" %}
 
-    {% set din = intfs[p["name"]] %}
+    {% set bram_din = intfs[p["name"]] %}
+    {% set bram_dout = p["resp"] if "resp" in p else None %}
 
-   logic [14:0] bram_addr_a;
-   assign {{din['name']}}.data[{{p['w_addr']-1}}:0] = bram_addr_a[{{p['w_addr']-1+2}}:2];
+    logic [14:0] bram_addr_a;
+    logic [31:0] bram_rd_data;
+    logic [31:0] bram_wr_data;
+    logic bram_we_a;
+
+    {% if bram_dout %}
+      assign bram_rd_data = {{bram_dout['name']}}.data;
+      assign {{bram_din['name']}}.data[{{p['w_addr']}}+:{{p['w_data']}}] = bram_wr_data;
+      assign {{bram_din['name']}}.data[{{p['w_addr'] + p['w_data']}}] = bram_we_a;
+    {% else %}
+      assign bram_wr_data = {{bram_din['name']}}.data[{{p['w_addr']}}+:{{p['w_data']}}];
+      assign bram_rd_data = bram_wr_data;
+    {% endif %}
+
+   assign {{bram_din['name']}}.data[{{p['w_addr']-1}}:0] = bram_addr_a[{{p['w_addr']-1+2}}:2];
    dtibram_{{p["name"]}} dtibram_{{p["name"]}}_i (
                     .s_axi_aclk(aclk),
                     .s_axi_aresetn(aresetn),
-                    .bram_en_a(),
-                    .bram_we_a({{din['name']}}.valid),
+                    .bram_en_a({{bram_din['name']}}.valid),
+                    .bram_we_a(bram_we_a),
                     .bram_addr_a(bram_addr_a),
-                    .bram_rddata_a({{din['name']}}.data[{{p['w_addr']}}+:{{p['w_data']}}]),
-                    .bram_wrdata_a({{din['name']}}.data[{{p['w_addr']}}+:{{p['w_data']}}]),
+                    .bram_rddata_a(bram_rd_data),
+                    .bram_wrdata_a(bram_wr_data),
                     .bram_clk_a(),
                     .bram_rst_a(),
 {{axi_intfs.port_map(axi_intfs.AXI_SLAVE, p["name"], "s_axi", waddr=p['w_addr'],
