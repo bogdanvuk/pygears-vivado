@@ -104,8 +104,10 @@ assign {{dout['name']}}.ready = {{dout['name']}}_tready;
     logic [31:0] bram_wr_data;
     logic bram_we_a;
 
+    {# TODO: Fixme: BRAM controller pulls valid low after initial cycle. It expects return data exactly on next cycle #}
     {% if bram_dout %}
       assign bram_rd_data = {{bram_dout['name']}}.data;
+      assign {{bram_dout['name']}}.ready = 1'b1;
       assign {{bram_din['name']}}.data[{{p['w_addr']}}+:{{p['w_data']}}] = bram_wr_data;
       assign {{bram_din['name']}}.data[{{p['w_addr'] + p['w_data']}}] = bram_we_a;
     {% else %}
