@@ -32,7 +32,7 @@ setup(
     setup_requires=['pygears'],
     package_data={
         '': ['*.j2', '*.sv', '*.c', '*.h'],
-        'drivers': ['*']
+        'pygears_vivado.drivers': ['*']
     },
     include_package_data=True,
     keywords=

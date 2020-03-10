@@ -1,0 +1,2 @@
+include pygears_vivado/drivers/*
+include pygears_vivado/drivers/axidma_v9_8/*
