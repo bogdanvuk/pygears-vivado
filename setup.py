@@ -30,7 +30,10 @@ setup(
     python_requires='>=3.6.0',
     install_requires=['pygears'],
     setup_requires=['pygears'],
-    package_data={'': ['*.j2', '*.sv', '*.c', '*.h']},
+    package_data={
+        '': ['*.j2', '*.sv', '*.c', '*.h'],
+        'drivers': ['*']
+    },
     include_package_data=True,
     keywords=
     'Vivado PyGears functional hardware design Python simulator HDL ASIC FPGA',
