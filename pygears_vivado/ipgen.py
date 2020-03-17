@@ -367,6 +367,8 @@ def ipgen(
         intf = json.loads(intf)
     elif intf is None:
         intf = ('axis', ) * (len(rtlnode.in_ports) + len(rtlnode.out_ports))
+    elif isinstance(intf, dict):
+        intf = tuple(intf[p.basename] for p in rtlnode.in_ports + rtlnode.out_ports)
 
     if len(intf) != (len(rtlnode.in_ports) + len(rtlnode.out_ports)):
         raise Exception(
