@@ -20,6 +20,7 @@ from pygears.hdl.v.generate import VTemplateEnv
 from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.typing.visitor import TypingVisitorBase
 from pygears.typing import Uint, Int, Bool, Queue, typeof, Integral, Fixp, Tuple, Union
+from pygears.hdl.templenv import get_port_intfs
 
 from .vivmod import SVVivModuleInst
 from .intf import run
@@ -462,7 +463,8 @@ def ipgen(
             else:
                 sigs.append(s)
 
-        intfs = {p['name']: p for p in modinst.port_configs}
+        intfs = {p['name']: p for p in get_port_intfs(rtlnode)}
+
         for i in intfs.values():
             dtype = i['type']
             w_data = i['width']
@@ -530,7 +532,7 @@ def ipgen(
             axi_intfs=axi_intfs)
 
         wrp = tenv.render_local(__file__, tmplt, context)
-        save_file(f'wrap_{os.path.basename(modinst.file_name)}', dirs['hdl'], wrp)
+        save_file(f'wrap_{os.path.basename(modinst.file_basename)}', dirs['hdl'], wrp)
 
         if build:
             run(os.path.join(dirs['script'], 'ippack.tcl'))
