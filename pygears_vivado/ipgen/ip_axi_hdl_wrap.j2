@@ -55,10 +55,18 @@ module {{wrap_module_name}}
     {% endif %}
 
   {% elif p["type"] == "axis" %}
+    {% set dout = intfs[p['name']] %}
+
     {% if p["direction"] == "in" %}
-{{ snippet.signal_intf_connect([intfs[p["name"]]])|indent(4, True)}}
+      {% if dout['w_eot'] == 0 %}
+assign {{dout['name']}}_tdata = {{dout['name']}}.data;
+      {% else %}
+assign {{dout['name']}}_tdata = {{dout['name']}}.data[{{dout['w_data']-1}}:0];
+assign {{dout['name']}}_tlast = &{{dout['name']}}.data[{{dout['w_data']}}+:{{dout['w_eot']}}];
+      {% endif %}
+assign {{dout['name']}}.valid = {{dout['name']}}_tvalid;
+assign {{dout['name']}}_tready = {{dout['name']}}.ready;
     {% else %}
-      {% set dout = intfs[p['name']] %}
       {% if dout['w_eot'] == 0 %}
 assign {{dout['name']}}_tdata = {{dout['name']}}.data;
       {% else %}

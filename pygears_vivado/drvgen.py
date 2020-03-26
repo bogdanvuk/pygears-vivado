@@ -12,7 +12,7 @@ from pygears import registry, config
 from pygears.core.gear import InSig
 from pygears.util.fileio import save_if_changed, save_file, copy_file
 from pygears.core.hier_node import HierYielderBase
-from pygears.hdl import list_hdl_files, hdlgen, find_rtl
+from pygears.hdl import list_hdl_files, hdlgen
 from pygears.hdl.ipgen import IpgenPlugin
 from pygears.hdl.templenv import TemplateEnv
 from pygears.hdl.sv.generate import SVTemplateEnv

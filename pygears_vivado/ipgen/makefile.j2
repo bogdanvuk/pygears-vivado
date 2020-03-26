@@ -1,0 +1,21 @@
+PY_SOURCES={{py_sources|join(' ')}}
+
+.PHONY : all clean
+all: Makefile.uptodate component.xml
+
+Makefile: {{design_path}} $(PY_SOURCES)
+{{"\t"}}pygears ipgen vivado -bg {{kwds|join(" ")}} {{hdl_include_path|join(" ")}} {{design_path}}
+
+Makefile.uptodate: Makefile
+	make clean
+	touch Makefile.uptodate
+
+./hdl: Makefile
+{{"\t"}}pygears ipgen vivado -b {{kwds|join(" ")}} {{hdl_include_path|join(" ")}} {{design_path}}
+
+component.xml: Makefile ./hdl
+{{"\t"}}vivado -mode batch -source ./script/ippack.tcl -nolog -nojournal
+
+clean:
+{{"\t"}}@find . ! -name "Makefile" -type f -exec rm -rf {} +
+{{"\t"}}@find . ! \( -name "." -or -name ".." \) -type d -exec rm -rf {} +

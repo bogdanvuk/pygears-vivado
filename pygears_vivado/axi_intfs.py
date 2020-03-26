@@ -76,7 +76,7 @@ AXIS_SLAVE = {
         Port('tready', 'out', 0),
     ],
     'last': [
-        Port('tlast', 'in', -1),
+        Port('tlast', 'in', 0),
     ]
 }
 
@@ -91,7 +91,7 @@ AXIS_MASTER = {
         Port('tready', 'in', 0),
     ],
     'last': [
-        Port('tlast', 'out', -1),
+        Port('tlast', 'out', 0),
     ]
 }
 
@@ -106,7 +106,7 @@ def subport_def(subintf, prefix, **kwds):
             elif 'dflt' in kwds:
                 width = kwds['dflt']
             else:
-                raise Exception(f"Port {p.name} wasn't supplied a parameter")
+                raise Exception(f'Port "{p.name}" wasn\'t supplied a parameter')
 
         direction = 'input' if p.direction == 'in' else 'output'
         name = f'{prefix}_{p.name}'
@@ -147,25 +147,3 @@ def port_map(intf, prefix_src, prefix_dest, **kwds):
             ret.append(f'.{prefix_dest}_{p.name}({prefix_src}_{p.name})')
 
     return ret
-
-
-# ret = port_def(
-#     AXI_SLAVE, 's_axi', wdata={
-#         'wdata': 32,
-#         'wstrb': 4
-#     }, waddr_qos=True, bresp=True)
-
-# print(ret)
-
-# ret = port_map(
-#     AXI_SLAVE,
-#     's_axi',
-#     's_bla_axi',
-#     wdata={
-#         'wdata': 32,
-#         'wstrb': 4
-#     },
-#     waddr_qos=True,
-#     bresp=True)
-
-# print(ret)
