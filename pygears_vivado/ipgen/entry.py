@@ -80,15 +80,15 @@ def ipgen(
 
     if isinstance(intf, str):
         intf = json.loads(intf)
-    elif intf is None:
-        intf = ('axis', ) * (len(top_mod.in_ports) + len(top_mod.out_ports))
-    elif isinstance(intf, dict):
-        intf = tuple(intf[p.basename] for p in top_mod.in_ports + top_mod.out_ports)
+    # elif intf is None:
+    #     intf = ('axis', ) * (len(top_mod.in_ports) + len(top_mod.out_ports))
+    # elif isinstance(intf, dict):
+    #     intf = tuple(intf[p.basename] for p in top_mod.in_ports + top_mod.out_ports)
 
-    if len(intf) != (len(top_mod.in_ports) + len(top_mod.out_ports)):
-        raise Exception(
-            f"{len(intf)} interface types supplied {intf}, but '{top_mod.name}' has "
-            f"{len(top_mod.in_ports) + len(top_mod.out_ports)} ports")
+    # if len(intf) != (len(top_mod.in_ports) + len(top_mod.out_ports)):
+    #     raise Exception(
+    #         f"{len(intf)} interface types supplied {intf}, but '{top_mod.name}' has "
+    #         f"{len(top_mod.in_ports) + len(top_mod.out_ports)} ports")
 
     generate_ip(top_mod, outdir, lang, intf, prjdir)
 

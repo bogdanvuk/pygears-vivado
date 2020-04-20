@@ -7,9 +7,9 @@
 {# {% set dma_en = (axi_din_type == "axi" or axi_dout_type == "axi") %} #}
 
 {% set dma_en = False %}
-{% for p in ports.values() %}
-{% set dma_en = (p["type"] == "axi" or dma_en) %}
-{% endfor %}
+{# {% for p in ports.values() %} #}
+{# {% set dma_en = (p["type"] == "axi" or dma_en) %} #}
+{# {% endfor %} #}
 
 {# {% set bram_en = (axi_din_type == "bram") %} #}
 {% set axi_lite_cfg = dma_en %}
@@ -77,6 +77,27 @@ set high_param [ipx::add_address_block_parameter OFFSET_HIGH_PARAM [ipx::get_add
 set_property value C_S_AXI_LITE_HIGHADDR $high_param
 
 {% endif %}
+
+ipx::add_user_parameter ID_WIDTH [ipx::current_core]
+set_property value_resolve_type user [ipx::get_user_parameters ID_WIDTH -of_objects [ipx::current_core]]
+ipgui::add_param -name {ID_WIDTH} -component [ipx::current_core]
+set_property display_name {ID Width} [ipgui::get_guiparamspec -name "ID_WIDTH" -component [ipx::current_core] ]
+set_property widget {textEdit} [ipgui::get_guiparamspec -name "ID_WIDTH" -component [ipx::current_core] ]
+set_property value 0 [ipx::get_user_parameters ID_WIDTH -of_objects [ipx::current_core]]
+set_property value_format long [ipx::get_user_parameters ID_WIDTH -of_objects [ipx::current_core]]
+set_property value_validation_type range_long [ipx::get_user_parameters ID_WIDTH -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 0 [ipx::get_user_parameters ID_WIDTH -of_objects [ipx::current_core]]
+set_property value_validation_range_maximum 32 [ipx::get_user_parameters ID_WIDTH -of_objects [ipx::current_core]]
+
+set_property enablement_dependency {(spirit:decode(id('PARAM_VALUE.ID_WIDTH')) > 0 )} [ipx::get_ports s_axi_arid -of_objects [ipx::current_core]]
+
+ipx::remove_address_block reg0 [ipx::get_memory_maps s_axi -of_objects [ipx::current_core]]
+ipx::add_memory_map Mem0 [ipx::current_core]
+ipx::remove_memory_map Mem0 [ipx::current_core]
+ipx::add_address_block Mem0 [ipx::get_memory_maps s_axi -of_objects [ipx::current_core]]
+
+ipgui::remove_param -component [ipx::current_core] [ipgui::get_guiparamspec -name "C_AXI_ID_WIDTH" -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "ID_WIDTH" -component [ipx::current_core]] -parent [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
 
 # Package IP
 ipx::create_xgui_files [ipx::current_core]

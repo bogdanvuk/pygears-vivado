@@ -1,6 +1,8 @@
 import os
 import jinja2
 import glob
+import shutil
+from pygears.definitions import LIB_VLIB_DIR
 
 from pygears import registry
 from pygears.util.fileio import save_file
@@ -8,11 +10,13 @@ from pygears.util.fileio import save_file
 from . import SVVivModuleInst
 
 
-def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
+# def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
+def ippack(top, dirs, lang, prjdir, drv_files):
 
     hdlgen_map = registry(f'{lang}gen/map')
     modinst = hdlgen_map[top]
     wrap_name = f'wrap_{modinst.module_name}'
+
 
     files = [dirs['hdl']]
     for rtl, mod in hdlgen_map.items():
@@ -27,6 +31,12 @@ def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
             if xci not in files:
                 files.append(xci)
 
+    for fn in ['axi_slave_read.v', 'sfifo.v', 'axi_addr.v', 'skidbuffer.v', 'axi_slave_write.v']:
+        try:
+            shutil.copy(os.path.join(LIB_VLIB_DIR, fn), dirs['hdl'])
+        except shutil.SameFileError:
+            pass
+
     context = {
         'prjdir': prjdir,
         'hdldir': dirs['hdl'],
@@ -35,7 +45,7 @@ def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
         'wrap_name': wrap_name,
         'files': files,
         'drv_files': drv_files,
-        'ports': axi_port_cfg,
+        # 'ports': axi_port_cfg,
         'bram_params': {},
         'description': '"PyGears {} IP"'.format(top.basename)
     }
@@ -47,31 +57,30 @@ def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
         lstrip_blocks=True)
     env.globals.update(zip=zip)
 
-    if not axi_port_cfg:
-        tmplt = 'ippack.j2'
-    else:
-        tmplt = 'axipack.j2'
+    # if not axi_port_cfg:
+    #     tmplt = 'ippack.j2'
+    # else:
+    tmplt = 'axipack.j2'
 
-        for name, cfg in axi_port_cfg.items():
-            if cfg['type'] in ['bram', 'bram.req']:
-                context['bram_params'][name] = {
-                    'protocol': 'AXI4',
-                    'single_port_bram': 1,
-                    'ecc_type': 0,
-                    'MEM_DEPTH': 16384
-                }
+        # for name, cfg in axi_port_cfg.items():
+        #     if cfg['type'] in ['bram', 'bram.req']:
+        #         context['bram_params'][name] = {
+        #             'protocol': 'AXI4',
+        #             'single_port_bram': 1,
+        #             'ecc_type': 0
+        #         }
 
-        context['dma_params'] = {
-            'c_include_sg': 0,
-            'c_sg_include_stscntrl_strm': 0,
-            'c_mm2s_burst_size': 8,
-            'c_s2mm_burst_size': 8
-        }
+        # context['dma_params'] = {
+        #     'c_include_sg': 0,
+        #     'c_sg_include_stscntrl_strm': 0,
+        #     'c_mm2s_burst_size': 8,
+        #     'c_s2mm_burst_size': 8
+        # }
 
-        context['dma_params']['c_include_mm2s'] = 0
-        context['dma_params']['c_include_s2mm'] = 0
+        # context['dma_params']['c_include_mm2s'] = 0
+        # context['dma_params']['c_include_s2mm'] = 0
 
-        env.globals.update(os=os)
+    env.globals.update(os=os)
 
     res = env.get_template(tmplt).render(context)
     save_file('ippack.tcl', dirs['script'], res)
