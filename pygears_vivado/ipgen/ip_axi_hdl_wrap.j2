@@ -107,7 +107,7 @@ assign {{dout['name']}}.ready = {{dout['name']}}_tready;
     {% set bram_din = intfs[p["name"]] %}
     {% set bram_dout = p["resp"] if "resp" in p else None %}
 
-    logic [14:0] bram_addr_a;
+    logic [15:0] bram_addr_a;
     logic [31:0] bram_rd_data;
     logic [31:0] bram_wr_data;
     logic bram_we_a;

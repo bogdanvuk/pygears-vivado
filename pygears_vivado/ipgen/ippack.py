@@ -57,7 +57,8 @@ def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
                 context['bram_params'][name] = {
                     'protocol': 'AXI4',
                     'single_port_bram': 1,
-                    'ecc_type': 0
+                    'ecc_type': 0,
+                    'MEM_DEPTH': 16384
                 }
 
         context['dma_params'] = {
