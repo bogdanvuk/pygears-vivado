@@ -10,7 +10,7 @@ set_property description {{description}} [ipx::current_core]
 set_property taxonomy /AXI_Infrastructure [ipx::current_core]
 set_property supported_families {zynq Production zynquplus Production artix7 Production kintex7 Production kintexu Production} [ipx::current_core]
 
-{% if dma_en %}
+{% if drv_files %}
 ipx::add_file_group -type software_driver {} [ipx::current_core]
 
 {% for f in drv_files %}
@@ -30,35 +30,38 @@ set_property type {driver_src} [ipx::get_files driver/{{ip_name}}_v1_0/src/Makef
 {% endif %}
 
 {% for name, cfg in axi_port_cfg.items() %}
-  {% if cfg['type'] == 'axidma' %}
+  {% if cfg.t == 'axidma' %}
+    {% set axi_intf = name + "_ctrl" %}
+  {% elif cfg.t == 'axi' %}
+    {% set axi_intf = name %}
+  {% else %}
+    {% continue %}
+  {% endif %}
 
-  {% set axi_lite_intf = name + "_ctrl" %}
+ipx::add_user_parameter C_{{axi_intf.upper()}}_BASEADDR [ipx::current_core]
+set_property value_resolve_type user [ipx::get_user_parameters C_{{axi_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
+ipgui::add_param -name {C_{{axi_intf.upper()}}_BASEADDR} -component [ipx::current_core]
+set_property display_name {C S Axi Lite Baseaddr} [ipgui::get_guiparamspec -name "C_{{axi_intf.upper()}}_BASEADDR" -component [ipx::current_core] ]
+set_property widget {hexEdit} [ipgui::get_guiparamspec -name "C_{{axi_intf.upper()}}_BASEADDR" -component [ipx::current_core] ]
+set_property value 0xFFFFFFFF [ipx::get_user_parameters C_{{axi_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
+set_property value_bit_string_length 32 [ipx::get_user_parameters C_{{axi_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
+set_property enablement_value false [ipx::get_user_parameters C_{{axi_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_user_parameters C_{{axi_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
+ipx::add_user_parameter C_{{axi_intf.upper()}}_HIGHADDR [ipx::current_core]
+set_property value_resolve_type user [ipx::get_user_parameters C_{{axi_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
+ipgui::add_param -name {C_{{axi_intf.upper()}}_HIGHADDR} -component [ipx::current_core]
+set_property display_name {C S Axi Lite Highaddr} [ipgui::get_guiparamspec -name "C_{{axi_intf.upper()}}_HIGHADDR" -component [ipx::current_core] ]
+set_property widget {hexEdit} [ipgui::get_guiparamspec -name "C_{{axi_intf.upper()}}_HIGHADDR" -component [ipx::current_core] ]
+set_property value 0x00000000 [ipx::get_user_parameters C_{{axi_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
+set_property value_bit_string_length 32 [ipx::get_user_parameters C_{{axi_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
+set_property enablement_value false [ipx::get_user_parameters C_{{axi_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_user_parameters C_{{axi_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
 
-ipx::add_user_parameter C_{{axi_lite_intf.upper()}}_BASEADDR [ipx::current_core]
-set_property value_resolve_type user [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
-ipgui::add_param -name {C_{{axi_lite_intf.upper()}}_BASEADDR} -component [ipx::current_core]
-set_property display_name {C S Axi Lite Baseaddr} [ipgui::get_guiparamspec -name "C_{{axi_lite_intf.upper()}}_BASEADDR" -component [ipx::current_core] ]
-set_property widget {hexEdit} [ipgui::get_guiparamspec -name "C_{{axi_lite_intf.upper()}}_BASEADDR" -component [ipx::current_core] ]
-set_property value 0xFFFFFFFF [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
-set_property value_bit_string_length 32 [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
-set_property enablement_value false [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
-set_property value_format bitString [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_BASEADDR -of_objects [ipx::current_core]]
-ipx::add_user_parameter C_{{axi_lite_intf.upper()}}_HIGHADDR [ipx::current_core]
-set_property value_resolve_type user [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
-ipgui::add_param -name {C_{{axi_lite_intf.upper()}}_HIGHADDR} -component [ipx::current_core]
-set_property display_name {C S Axi Lite Highaddr} [ipgui::get_guiparamspec -name "C_{{axi_lite_intf.upper()}}_HIGHADDR" -component [ipx::current_core] ]
-set_property widget {hexEdit} [ipgui::get_guiparamspec -name "C_{{axi_lite_intf.upper()}}_HIGHADDR" -component [ipx::current_core] ]
-set_property value 0x00000000 [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
-set_property value_bit_string_length 32 [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
-set_property enablement_value false [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
-set_property value_format bitString [ipx::get_user_parameters C_{{axi_lite_intf.upper()}}_HIGHADDR -of_objects [ipx::current_core]]
+set base_param [ipx::add_address_block_parameter OFFSET_BASE_PARAM [ipx::get_address_blocks reg0 -of_objects [ipx::get_memory_maps {{axi_intf}} -of_objects [ipx::current_core]]]]
+set_property value C_{{axi_intf.upper()}}_BASEADDR $base_param
+set high_param [ipx::add_address_block_parameter OFFSET_HIGH_PARAM [ipx::get_address_blocks reg0 -of_objects [ipx::get_memory_maps {{axi_intf}} -of_objects [ipx::current_core]]]]
+set_property value C_{{axi_intf.upper()}}_HIGHADDR $high_param
 
-set base_param [ipx::add_address_block_parameter OFFSET_BASE_PARAM [ipx::get_address_blocks reg0 -of_objects [ipx::get_memory_maps {{axi_lite_intf}} -of_objects [ipx::current_core]]]]
-set_property value C_{{axi_lite_intf.upper()}}_BASEADDR $base_param
-set high_param [ipx::add_address_block_parameter OFFSET_HIGH_PARAM [ipx::get_address_blocks reg0 -of_objects [ipx::get_memory_maps {{axi_lite_intf}} -of_objects [ipx::current_core]]]]
-set_property value C_{{axi_lite_intf.upper()}}_HIGHADDR $high_param
-
-  {% endif %} 
 {% endfor %} 
 
 {# ipx::add_user_parameter ID_WIDTH [ipx::current_core] #}

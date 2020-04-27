@@ -12,6 +12,7 @@ from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.util.fileio import save_file
 from pygears.hdl.intfs.generate import generate as generate_wrap, get_axi_conf
 from . import axi_intfs
+from .drvgen import drvgen
 
 default_preproc = {
     ".consumer": ".slave",
@@ -38,7 +39,7 @@ def preproc_hdl(dirs, mapping):
         preproc_file(fn, mapping)
 
 
-def generate(top, outdir, lang, intf, prjdir):
+def generate(top, outdir, lang, intfdef, prjdir):
     dirs = get_folder_struct(outdir)
     create_folder_struct(dirs)
 
@@ -57,12 +58,14 @@ def generate(top, outdir, lang, intf, prjdir):
         else:
             sigs.append(s)
 
-    wrp, files = generate_wrap(top, intf)
+    drv_files = drvgen(top, intfdef, dirs['driver'])
+
+    wrp, files = generate_wrap(top, intfdef)
 
     ippack(
         top,
         dirs,
-        intf=intf,
+        intfdef=intfdef,
         lang=lang,
         prjdir=prjdir,
         files=files,

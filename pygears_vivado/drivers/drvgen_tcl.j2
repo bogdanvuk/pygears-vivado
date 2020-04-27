@@ -1,3 +1,4 @@
 proc generate {drv_handle} {
-	xdefine_include_file $drv_handle "xparameters.h" "{{module_name}}" "NUM_INSTANCES" "DEVICE_ID"  "C_S_AXI_LITE_BASEADDR" "C_S_AXI_LITE_HIGHADDR"
+	xdefine_include_file $drv_handle "xparameters.h" "{{module_name}}" "NUM_INSTANCES" "DEVICE_ID" {{params}}
+	xdefine_config_file $drv_handle "{{module_name}}_g.c" "{{module_name}}" "DEVICE_ID" {{params}}
 }

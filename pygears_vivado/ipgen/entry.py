@@ -9,6 +9,7 @@ from pygears.entry import cmd_register
 from pygears.util.fileio import get_main_script
 from pygears.hdl.ipgen import IpgenPlugin
 from pygears.conf.custom_settings import load_rc
+from pygears.hdl.intfs.axi import get_axi_conf
 
 from . import run
 from .generate import generate as generate_ip
@@ -90,7 +91,7 @@ def ipgen(
     #         f"{len(intf)} interface types supplied {intf}, but '{top_mod.name}' has "
     #         f"{len(top_mod.in_ports) + len(top_mod.out_ports)} ports")
 
-    generate_ip(top_mod, outdir, lang, intf, prjdir)
+    generate_ip(top_mod, outdir, lang, get_axi_conf(top_mod, intf), prjdir)
 
     if build:
         ret = run(os.path.join(outdir, 'script', 'ippack.tcl'))

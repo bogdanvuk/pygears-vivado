@@ -12,7 +12,7 @@ from . import SVVivModuleInst
 
 
 # def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
-def ippack(top, dirs, intf, lang, prjdir, files, drv_files):
+def ippack(top, dirs, intfdef, lang, prjdir, files, drv_files):
 
     hdlgen_map = registry(f'{lang}gen/map')
     modinst = hdlgen_map[top]
@@ -37,7 +37,15 @@ def ippack(top, dirs, intf, lang, prjdir, files, drv_files):
             if xci not in files:
                 files.append(xci)
 
-    axi_port_cfg = get_axi_conf(top, intf)
+    c_files = []
+    for f in drv_files:
+        if f[-3:] in ['mdd', 'tcl']:
+            continue
+
+        if os.path.basename(f) == 'Makefile':
+            continue
+
+        c_files.append(os.path.relpath(f, dirs['root']))
 
     context = {
         'prjdir': prjdir,
@@ -46,13 +54,14 @@ def ippack(top, dirs, intf, lang, prjdir, files, drv_files):
         'ip_name': top.basename,
         'wrap_name': wrap_name,
         'files': files,
-        'drv_files': drv_files,
-        'axi_port_cfg': axi_port_cfg,
+        'drv_files': c_files,
+        'axi_port_cfg': intfdef,
         'description': '"PyGears {} IP"'.format(top.basename)
     }
 
     base_addr = os.path.dirname(__file__)
     env = jinja2.Environment(
+        extensions=['jinja2.ext.loopcontrols'],
         loader=jinja2.FileSystemLoader([base_addr, os.path.dirname(base_addr)]),
         trim_blocks=True,
         lstrip_blocks=True)
