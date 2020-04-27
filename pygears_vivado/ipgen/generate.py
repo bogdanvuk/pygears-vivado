@@ -45,7 +45,7 @@ def generate(top, outdir, lang, intf, prjdir):
     drv_files = []
     axi_port_cfg = get_axi_conf(top, intf)
 
-    hdlgen(top, outdir=dirs['hdl'], wrapper=False, copy_files=True, language=lang)
+    hdlgen(top, outdir=dirs['hdl'], wrapper=False, copy_files=True, lang=lang)
 
     ippack(
         top,

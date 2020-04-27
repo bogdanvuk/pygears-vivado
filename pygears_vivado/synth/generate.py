@@ -18,7 +18,7 @@ def generate(
     if lang not in ['sv', 'v']:
         raise Exception(f"Synth test unknown language: {lang}")
 
-    hdlgen(top=top, language=lang, outdir=outdir, wrapper=(lang == 'sv'))
+    hdlgen(top=top, lang=lang, outdir=outdir, wrapper=(lang == 'sv'))
 
     vgen_map = registry(f'{lang}gen/map')
     top_name = vgen_map[top].module_name
