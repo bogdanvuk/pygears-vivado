@@ -3,6 +3,7 @@ set prjdir [lindex $argv 1]
 set ipname [lindex $argv 2]
 set inputs [lindex $argv 3]
 set outputs [lindex $argv 4]
+set axilite [lindex $argv 5]
 
 set_param board.repoPaths $testdir/board
 
@@ -22,6 +23,7 @@ if {[llength $inputs] > 0} {
     set_property -dict [list CONFIG.PSU__MAXIGP2__DATA_WIDTH [lindex $inputs 1]] [get_bd_cells zynq_ultra_ps_e_0]
     connect_bd_intf_net [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_LPD] [get_bd_intf_pins ${ipname}_0/[lindex $inputs 0]]
     connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_lpd_aclk]
+    set_property -dict [list CONFIG.C_AXI_[string toupper [lindex $inputs 0]]_ID_WIDTH {16}] [get_bd_cells ${ipname}_0]
 }
 
 if {[llength $inputs] > 2} {
@@ -30,16 +32,27 @@ if {[llength $inputs] > 2} {
     connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk]
 }
 
+
+if {[llength $axilite] > 0} {
+    create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_convert_0
+    connect_bd_intf_net [get_bd_intf_pins axi_protocol_convert_0/M_AXI] [get_bd_intf_pins ${ipname}_0/[lindex $axilite 0]]
+    set_property -dict [list CONFIG.PSU__USE__M_AXI_GP0 {1} CONFIG.PSU__MAXIGP0__DATA_WIDTH {32}] [get_bd_cells zynq_ultra_ps_e_0]
+    connect_bd_intf_net [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_FPD] [get_bd_intf_pins axi_protocol_convert_0/S_AXI]
+    connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk]
+    connect_bd_net [get_bd_pins axi_protocol_convert_0/aclk] [get_bd_pins zynq_ultra_ps_e_0/pl_clk0]
+    connect_bd_net [get_bd_pins axi_protocol_convert_0/aresetn] [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0]
+}
+
 if {[llength $outputs] > 0} {
     set_property -dict [list CONFIG.PSU__USE__S_AXI_GP2 {1} CONFIG.PSU__SAXIGP2__DATA_WIDTH [lindex $outputs 1]] [get_bd_cells zynq_ultra_ps_e_0]
     connect_bd_intf_net [get_bd_intf_pins zynq_ultra_ps_e_0/S_AXI_HP0_FPD] [get_bd_intf_pins ${ipname}_0/[lindex $outputs 0]]
     connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk]
+    set_property -dict [list CONFIG.C_AXI_[string toupper [lindex $outputs 0]]_ID_WIDTH {5}] [get_bd_cells ${ipname}_0]
 }
 
 connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] [get_bd_pins ${ipname}_0/aresetn]
 connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins ${ipname}_0/aclk]
 
-set_property -dict [list CONFIG.C_AXI_ID_WIDTH {16}] [get_bd_cells ${ipname}_0]
 assign_bd_address
 
 validate_bd_design

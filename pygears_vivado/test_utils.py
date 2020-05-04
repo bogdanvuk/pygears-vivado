@@ -32,6 +32,7 @@ def ipgen_test_fixture(tmpdir, request):
 
     inputs = []
     outputs = []
+    axilite = []
     intfdef = get_axi_conf(top, request.param[1])
     for name, conf in intfdef.items():
         if conf.t == 'axi':
@@ -39,6 +40,11 @@ def ipgen_test_fixture(tmpdir, request):
                 inputs.extend([name, str(conf.comp['rdata'].params['rdata'])])
             elif 'wdata' in conf.comp:
                 inputs.extend([name, str(conf.comp['wdata'].params['wdata'])])
+        elif conf.t == 'axidma':
+            if 'rdata' in conf.comp:
+                outputs.extend([name, str(conf.comp['rdata'].params['rdata'])])
+        elif conf.t == 'axilite':
+            axilite.append(name)
 
     ipgen(
         'vivado',
@@ -51,8 +57,9 @@ def ipgen_test_fixture(tmpdir, request):
 
     inputs = " ".join(inputs)
     outputs = " ".join(outputs)
+    axilite = " ".join(axilite)
     tcl = os.path.join(testdir, 'viv_testprj.tcl')
-    os.system(f'vivado -mode batch -source {tcl} -nolog -nojournal -tclargs "{testdir}" "{tmpdir}" "{top.basename}" "{inputs}" "{outputs}"')
+    os.system(f'vivado -mode batch -source {tcl} -nolog -nojournal -tclargs "{testdir}" "{tmpdir}" "{top.basename}" "{inputs}" "{outputs}" "{axilite}"')
 
     tcl = os.path.join(testdir, 'xsct_testprj.tcl')
     os.system(f'xsct {tcl} "{testdir}" "{tmpdir}" "{testname}"')

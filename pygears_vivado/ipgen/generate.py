@@ -11,7 +11,6 @@ from pygears.hdl.templenv import TemplateEnv
 from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.util.fileio import save_file
 from pygears.hdl.intfs.generate import generate as generate_wrap, get_axi_conf
-from . import axi_intfs
 from .drvgen import drvgen
 
 default_preproc = {

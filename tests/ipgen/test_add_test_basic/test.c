@@ -24,8 +24,6 @@ int run_test() {
 }
 
 int main() {
-  int res;
-
   if (run_test()) {
     printf("FAIL\r\n");
   } else {
