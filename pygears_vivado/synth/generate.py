@@ -1,7 +1,7 @@
 import shutil
 import jinja2
 import os
-from pygears import registry
+from pygears import reg
 from pygears.hdl import hdlgen, list_hdl_files
 from pygears.hdl.yosys import synth as yosys_synth
 
@@ -18,7 +18,7 @@ def generate(
     if lang not in ['sv', 'v']:
         raise Exception(f"Synth test unknown language: {lang}")
 
-    hdlgen(top=top, lang=lang, outdir=outdir, wrapper=(lang == 'sv'))
+    hdlgen(top=top, lang=lang, outdir=outdir, wrapper=True)
 
     vgen_map = registry(f'{lang}gen/map')
     top_name = vgen_map[top].module_name

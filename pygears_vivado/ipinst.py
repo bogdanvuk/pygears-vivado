@@ -4,7 +4,7 @@ import hashlib
 import glob
 import shutil
 import tempfile
-from pygears import config, find
+from pygears import reg, find
 from pygears.definitions import CACHE_DIR
 from pygears.hdl.templenv import TemplateEnv
 from pygears_vivado.intf import run

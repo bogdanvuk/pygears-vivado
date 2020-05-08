@@ -4,7 +4,7 @@ import json
 import tempfile
 
 from pygears.definitions import CACHE_DIR
-from pygears import registry, config, find, bind, safe_bind
+from pygears import reg, find
 from pygears.entry import cmd_register
 from pygears.util.fileio import get_main_script
 from pygears.hdl.synth import SynthPlugin
@@ -102,7 +102,7 @@ class VivadoSynthPlugin(SynthPlugin):
     def bind(cls):
         conf = cmd_register(['synth', 'vivado'], synth, aliases=['viv'], derived=True)
 
-        safe_bind('vivado/synth/lock', False)
+        reg['vivado/synth/lock'] = False
 
         conf['parser'].add_argument('--prjdir', type=str)
         conf['parser'].add_argument('--util', action='store_true')

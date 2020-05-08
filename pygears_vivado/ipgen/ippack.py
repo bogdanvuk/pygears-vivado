@@ -2,7 +2,7 @@ import os
 import jinja2
 import glob
 
-from pygears import registry
+from pygears import reg
 from pygears.util.fileio import save_file
 
 from . import SVVivModuleInst

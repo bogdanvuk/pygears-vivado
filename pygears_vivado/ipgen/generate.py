@@ -3,7 +3,7 @@ import jinja2
 from .utils import create_folder_struct, get_folder_struct
 from .axi import get_axi_conf
 from .ippack import ippack
-from pygears import registry
+from pygears import reg
 from pygears.typing import Queue, typeof
 from pygears.core.gear import InSig
 from pygears.hdl import hdlgen

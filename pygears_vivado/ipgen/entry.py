@@ -4,7 +4,7 @@ import json
 import tempfile
 
 from pygears.definitions import CACHE_DIR
-from pygears import registry, config, find, bind, safe_bind
+from pygears import reg, find
 from pygears.entry import cmd_register
 from pygears.util.fileio import get_main_script
 from pygears.hdl.ipgen import IpgenPlugin
@@ -103,9 +103,9 @@ class VivadoIpgenPlugin(IpgenPlugin):
     def bind(cls):
         conf = cmd_register(['ipgen', 'vivado'], ipgen, aliases=['viv'], derived=True)
 
-        config.define('vivado/iplib', default=os.path.join(CACHE_DIR, 'vivado', 'iplib'))
+        reg.confdef('vivado/iplib', default=os.path.join(CACHE_DIR, 'vivado', 'iplib'))
 
-        safe_bind('vivado/ipgen/lock', False)
+        reg['vivado/ipgen/lock'] = False
 
         conf['parser'].add_argument('--intf', type=str)
 
