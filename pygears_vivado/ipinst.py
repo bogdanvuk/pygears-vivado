@@ -41,7 +41,7 @@ def ipdir(top, resdir=None, **kwds):
         top = find(top)
 
     if resdir is None:
-        resdir = os.path.join(config['results-dir'], 'ip')
+        resdir = os.path.join(reg['results-dir'], 'ip')
 
     params = top.explicit_params
     ipname = top.definition.__name__
