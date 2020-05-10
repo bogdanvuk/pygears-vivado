@@ -10,7 +10,7 @@ from . import SVVivModuleInst
 
 def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
 
-    hdlgen_map = registry(f'{lang}gen/map')
+    hdlgen_map = reg[f'{lang}gen/map']
     modinst = hdlgen_map[top]
     wrap_name = f'wrap_{modinst.module_name}'
 

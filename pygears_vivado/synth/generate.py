@@ -20,7 +20,7 @@ def generate(
 
     hdlgen(top=top, lang=lang, outdir=outdir, wrapper=True)
 
-    vgen_map = registry(f'{lang}gen/map')
+    vgen_map = reg[f'{lang}gen/map']
     top_name = vgen_map[top].module_name
 
     if lang == 'sv' or not yosys_preproc or not shutil.which('yosys'):

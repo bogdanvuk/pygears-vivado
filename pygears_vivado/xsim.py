@@ -35,7 +35,7 @@ def xsim(outdir=None, makefile=True, files=None, includes=None, batch=True, seed
 
     kwds = {
         'batch': batch,
-        'seed': seed if seed is not None else registry("sim/rand_seed")
+        'seed': seed if seed is not None else reg["sim/rand_seed"]
     }
 
     if makefile:

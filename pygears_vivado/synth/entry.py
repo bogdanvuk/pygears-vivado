@@ -28,7 +28,7 @@ def synth(
     timing=False,
     prjdir=None):
 
-    if registry('vivado/synth/lock'):
+    if reg['vivado/synth/lock']:
         return
 
     if design is None:
@@ -39,7 +39,7 @@ def synth(
 
     if outdir is None:
         outdir = os.path.join(
-            config['vivado/iplib'], top if isinstance(top, str) else top.basename)
+            reg['vivado/iplib'], top if isinstance(top, str) else top.basename)
 
     os.makedirs(outdir, exist_ok=True)
 
@@ -62,10 +62,10 @@ def synth(
         top_mod = top
 
     if top_mod is None:
-        bind('vivado/synth/lock', True)
+        reg['vivado/synth/lock'] = True
         load_rc('.pygears', os.path.dirname(design))
         runpy.run_path(design)
-        bind('vivado/synth/lock', False)
+        reg['vivado/synth/lock'] = False
         top_mod = find(top)
 
     if top_mod is None:
@@ -78,7 +78,7 @@ def synth(
     if include is None:
         include = []
 
-    include += config[f'{lang}gen/include']
+    include += reg[f'{lang}gen/include']
 
     generate_synth(top_mod, outdir, lang, util, timing, prjdir)
 
