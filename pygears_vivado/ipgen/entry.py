@@ -90,8 +90,8 @@ def ipgen(
     #     raise Exception(
     #         f"{len(intf)} interface types supplied {intf}, but '{top_mod.name}' has "
     #         f"{len(top_mod.in_ports) + len(top_mod.out_ports)} ports")
-
-    generate_ip(top_mod, outdir, lang, get_axi_conf(top_mod, intf), prjdir)
+    intfdef = get_axi_conf(top_mod, intf)
+    generate_ip(top_mod, outdir, lang, intfdef, prjdir)
 
     if build:
         ret = run(os.path.join(outdir, 'script', 'ippack.tcl'))

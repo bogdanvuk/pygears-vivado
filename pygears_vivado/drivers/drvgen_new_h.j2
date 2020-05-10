@@ -33,7 +33,12 @@ int {{module_name}}_init_cfg({{module_name}}* h, {{module_name}}_Config* cfg);
 int {{module_name}}_init({{module_name}}* h, unsigned device_id);
 
 {% for name, p in intfdef.items() if p.t == 'axidma'%}
-void {{module_name}}_{{name}}_send({{module_name}}* h, void* data, size_t len);
+  {% if 'rdata' in p.comp %}
+void {{module_name}}_{{name}}_send({{module_name}}* h, const void* data, size_t len);
+  {% endif %}
+  {% if 'wdata' in p.comp %}
+void {{module_name}}_{{name}}_recv({{module_name}}* h, void* data, size_t len);
+  {% endif %}
 {% endfor %}
 
 {% for name, p in intfdef.items() if p.t == 'axi' and 'r' in p.direction %}

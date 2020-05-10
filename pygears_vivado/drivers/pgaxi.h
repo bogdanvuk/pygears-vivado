@@ -10,7 +10,9 @@ typedef struct {
 
 void pgaxi_init(pgaxi *h, uintptr_t reg_base);
 
-void pgaxi_dma_send(pgaxi *h, void *data, size_t len);
+void pgaxi_dma_send(pgaxi *h, const void *data, size_t len);
+
+void pgaxi_dma_recv(pgaxi *h, void *data, size_t len);
 
 void pgaxi_write32(pgaxi *h, uint32_t val, uintptr_t addr);
 

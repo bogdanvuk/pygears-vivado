@@ -20,9 +20,9 @@ def ipgen_test(top, intf, **kwds):
 def ipgen_test_fixture(tmpdir, request):
     yield
 
-    # import shutil
-    # tmpdir = '/tools/home/tmp/auto_axi_test'
-    # shutil.rmtree(tmpdir, ignore_errors=True)
+    import shutil
+    tmpdir = '/tools/home/tmp/auto_axi_test'
+    shutil.rmtree(tmpdir, ignore_errors=True)
 
     modname = request.module.__name__.split('.')[-1]
     testname = f'{modname}_{request.function.__name__}'
@@ -43,6 +43,8 @@ def ipgen_test_fixture(tmpdir, request):
         elif conf.t == 'axidma':
             if 'rdata' in conf.comp:
                 outputs.extend([name, str(conf.comp['rdata'].params['rdata'])])
+            if 'wdata' in conf.comp:
+                outputs.extend([name, str(conf.comp['wdata'].params['wdata'])])
         elif conf.t == 'axilite':
             axilite.append(name)
 

@@ -26,12 +26,25 @@ void pgaxi_dma_set(pgaxi *h, uint32_t reg, uint32_t val) {
     *reg_addr = val;
 }
 
-void pgaxi_dma_send(pgaxi *h, void *data, size_t len) {
+void pgaxi_dma_send(pgaxi *h, const void *data, size_t len) {
     while (pgaxi_dma_busy(h))
         ;
 
     pgaxi_dma_set(h, CMD_ADDRLO, (uintptr_t)data);
     pgaxi_dma_set(h, CMD_ADDRHI, ((uintptr_t)data) >> 32);
+
+    pgaxi_dma_set(h, CMD_LENLO, len);
+    pgaxi_dma_set(h, CMD_LENHI, len >> 32);
+
+    pgaxi_dma_set(h, CMD_CONTROL, 0x80000000);
+}
+
+void pgaxi_dma_recv(pgaxi *h, void *data, size_t len) {
+    while (pgaxi_dma_busy(h))
+        ;
+
+    pgaxi_dma_set(h, 0x4, (uintptr_t)data);
+    pgaxi_dma_set(h, 0x5, ((uintptr_t)data) >> 32);
 
     pgaxi_dma_set(h, CMD_LENLO, len);
     pgaxi_dma_set(h, CMD_LENHI, len >> 32);
