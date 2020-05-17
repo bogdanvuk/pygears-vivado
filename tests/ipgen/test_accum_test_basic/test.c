@@ -8,7 +8,7 @@ int run_test() {
   accum h;
 
   accum_init(&h, 0);
-  accum_din_send(&h, buff, 16);
+  accum_din_send(&h, buff, 8);
 
   if (accum_dout_read(&h) != 30)
     return -1;

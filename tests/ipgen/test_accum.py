@@ -4,18 +4,8 @@ from pygears_vivado.test_utils import ipgen_test
 from pygears import Intf
 from pygears.typing import Tuple, Uint, Queue
 
-@ipgen_test(
-    top='/accum',
-    intf={
-        'din': {
-            'type': 'axidma',
-            'rdata': 'din'
-        },
-        'dout': {
-            'type': 'axi',
-            'rdata': 'dout'
-        }
-    })
+
+@ipgen_test(top='/accum', intf={'din': 'axidma', 'dout': 'axi'})
 def test_basic(tmpdir):
     @gear
     def accum_wrp(din):

@@ -50,6 +50,9 @@ void pgaxi_dma_recv(pgaxi *h, void *data, size_t len) {
     pgaxi_dma_set(h, CMD_LENHI, len >> 32);
 
     pgaxi_dma_set(h, CMD_CONTROL, 0x80000000);
+
+    while (pgaxi_dma_busy(h))
+      ;
 }
 
 void pgaxi_write32(pgaxi *h, uint32_t val, uintptr_t addr) {

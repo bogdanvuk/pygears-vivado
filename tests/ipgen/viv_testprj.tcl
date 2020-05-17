@@ -30,6 +30,7 @@ if {[llength $inputs] > 2} {
     set_property -dict [list CONFIG.PSU__USE__M_AXI_GP0 {1} CONFIG.PSU__MAXIGP0__DATA_WIDTH [lindex $inputs 3]] [get_bd_cells zynq_ultra_ps_e_0]
     connect_bd_intf_net [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_FPD] [get_bd_intf_pins ${ipname}_0/[lindex $inputs 2]]
     connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk]
+    set_property -dict [list CONFIG.C_AXI_[string toupper [lindex $inputs 2]]_ID_WIDTH {16}] [get_bd_cells ${ipname}_0]
 }
 
 
@@ -47,7 +48,7 @@ if {[llength $outputs] > 0} {
     set_property -dict [list CONFIG.PSU__USE__S_AXI_GP2 {1} CONFIG.PSU__SAXIGP2__DATA_WIDTH [lindex $outputs 1]] [get_bd_cells zynq_ultra_ps_e_0]
     connect_bd_intf_net [get_bd_intf_pins zynq_ultra_ps_e_0/S_AXI_HP0_FPD] [get_bd_intf_pins ${ipname}_0/[lindex $outputs 0]]
     connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk]
-    set_property -dict [list CONFIG.C_AXI_[string toupper [lindex $outputs 0]]_ID_WIDTH {5}] [get_bd_cells ${ipname}_0]
+    set_property -dict [list CONFIG.C_AXI_[string toupper [lindex $outputs 0]]_ID_WIDTH {6}] [get_bd_cells ${ipname}_0]
 }
 
 connect_bd_net [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] [get_bd_pins ${ipname}_0/aresetn]

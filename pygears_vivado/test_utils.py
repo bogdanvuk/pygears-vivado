@@ -7,14 +7,15 @@ from pygears import find
 from pygears.hdl.ipgen import ipgen
 from pygears.hdl.intfs.axi import get_axi_conf
 
+
 def ipgen_test(top, intf, **kwds):
     def decorator(func):
         return pytest.mark.usefixtures('ipgen_test_fixture')(
             pytest.mark.parametrize(
-                'ipgen_test_fixture', [[top, intf, kwds]],
-                indirect=True)(func))
+                'ipgen_test_fixture', [[top, intf, kwds]], indirect=True)(func))
 
     return decorator
+
 
 @pytest.fixture
 def ipgen_test_fixture(tmpdir, request):
@@ -61,7 +62,13 @@ def ipgen_test_fixture(tmpdir, request):
     outputs = " ".join(outputs)
     axilite = " ".join(axilite)
     tcl = os.path.join(testdir, 'viv_testprj.tcl')
-    os.system(f'vivado -mode batch -source {tcl} -nolog -nojournal -tclargs "{testdir}" "{tmpdir}" "{top.basename}" "{inputs}" "{outputs}" "{axilite}"')
+    cmd = (
+        f'vivado -mode batch -source {tcl} -nolog -nojournal -tclargs "{testdir}" "{tmpdir}"'
+        f' "{top.basename}" "{inputs}" "{outputs}" "{axilite}"')
+
+    print(f'Vivado project script invoked with: {cmd}')
+    print(cmd)
+    os.system(cmd)
 
     tcl = os.path.join(testdir, 'xsct_testprj.tcl')
     os.system(f'xsct {tcl} "{testdir}" "{tmpdir}" "{testname}"')
