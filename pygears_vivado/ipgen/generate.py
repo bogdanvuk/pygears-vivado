@@ -57,7 +57,7 @@ def generate(top, outdir, lang, intf, prjdir):
 
     preproc_hdl(dirs, mapping=default_preproc)
 
-    modinst = reg['svgen/map'][top]
+    modinst = reg['hdlgen/map'][top]
 
     sigs = []
     for s in top.signals.values():
