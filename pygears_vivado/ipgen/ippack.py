@@ -4,7 +4,7 @@ import glob
 import shutil
 from pygears.definitions import LIB_VLIB_DIR
 
-from pygears import registry
+from pygears import reg
 from pygears.util.fileio import save_file
 from pygears.hdl.intfs.generate import get_axi_conf
 
@@ -14,7 +14,7 @@ from . import SVVivModuleInst
 # def ippack(top, dirs, lang, prjdir, drv_files, axi_port_cfg):
 def ippack(top, dirs, intfdef, lang, prjdir, files, drv_files):
 
-    hdlgen_map = registry(f'{lang}gen/map')
+    hdlgen_map = reg['hdlgen/map']
     modinst = hdlgen_map[top]
     wrap_name = f'wrap_{modinst.module_name}'
 

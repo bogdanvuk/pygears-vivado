@@ -1,16 +1,11 @@
 import os
-import jinja2
 from .utils import create_folder_struct, get_folder_struct
 from .ippack import ippack
-from pygears import registry
-from pygears.typing import Queue, typeof
+from pygears import reg
 from pygears.core.gear import InSig
 from pygears.hdl import hdlgen
-from pygears.hdl.templenv import get_port_intfs
-from pygears.hdl.templenv import TemplateEnv
-from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.util.fileio import save_file
-from pygears.hdl.intfs.generate import generate as generate_wrap, get_axi_conf
+from pygears.hdl.intfs.generate import generate as generate_wrap
 from .drvgen import drvgen
 
 default_preproc = {
@@ -46,7 +41,7 @@ def generate(top, outdir, lang, intfdef, prjdir):
 
     hdlgen(top, outdir=dirs['hdl'], wrapper=False, copy_files=True, lang=lang)
 
-    modinst = registry('svgen/map')[top]
+    modinst = reg['hdlgen/map'][top]
 
     sigs = []
     for s in top.signals.values():

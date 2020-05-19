@@ -4,7 +4,7 @@ import json
 import tempfile
 
 from pygears.definitions import CACHE_DIR
-from pygears import registry, config, find, bind, safe_bind
+from pygears import reg, find
 from pygears.entry import cmd_register
 from pygears.util.fileio import get_main_script
 from pygears.hdl.ipgen import IpgenPlugin
@@ -27,7 +27,7 @@ def ipgen(
     intf=None,
     prjdir=None):
 
-    if registry('vivado/ipgen/lock'):
+    if reg['vivado/ipgen/lock']:
         return
 
     if design is None:
@@ -37,7 +37,7 @@ def ipgen(
 
     if outdir is None:
         outdir = os.path.join(
-            config['vivado/iplib'], top if isinstance(top, str) else top.basename)
+            reg['vivado/iplib'], top if isinstance(top, str) else top.basename)
 
     os.makedirs(outdir, exist_ok=True)
 
@@ -61,10 +61,10 @@ def ipgen(
         top_mod = top
 
     if top_mod is None:
-        bind('vivado/ipgen/lock', True)
+        reg['vivado/ipgen/lock'] = True
         load_rc('.pygears', os.path.dirname(design))
         runpy.run_path(design)
-        bind('vivado/ipgen/lock', False)
+        reg['vivado/ipgen/lock'] = False
         top_mod = find(top)
 
     if top_mod is None:
@@ -77,7 +77,7 @@ def ipgen(
     if include is None:
         include = []
 
-    include += config[f'{lang}gen/include']
+    include += reg[f'{lang}gen/include']
 
     if isinstance(intf, str):
         intf = json.loads(intf)
@@ -104,9 +104,9 @@ class VivadoIpgenPlugin(IpgenPlugin):
     def bind(cls):
         conf = cmd_register(['ipgen', 'vivado'], ipgen, aliases=['viv'], derived=True)
 
-        config.define('vivado/iplib', default=os.path.join(CACHE_DIR, 'vivado', 'iplib'))
+        reg.confdef('vivado/iplib', default=os.path.join(CACHE_DIR, 'vivado', 'iplib'))
 
-        safe_bind('vivado/ipgen/lock', False)
+        reg['vivado/ipgen/lock'] = False
 
         conf['parser'].add_argument('--intf', type=str)
 

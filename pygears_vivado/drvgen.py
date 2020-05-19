@@ -1,25 +1,9 @@
 import os
-import json
 from copy import deepcopy
-import glob
-import tempfile
-import inspect
-import shutil
 import jinja2
 
-from pygears.definitions import CACHE_DIR
-from pygears import registry, config
-from pygears.core.gear import InSig
-from pygears.util.fileio import save_if_changed, save_file, copy_file
-from pygears.core.hier_node import HierYielderBase
-from pygears.hdl import list_hdl_files, hdlgen
-from pygears.hdl.ipgen import IpgenPlugin
-from pygears.hdl.templenv import TemplateEnv
-from pygears.hdl.sv.generate import SVTemplateEnv
-from pygears.hdl.v.generate import VTemplateEnv
-from pygears.typing.math import ceil_chunk, ceil_div, ceil_pow2
 from pygears.typing.visitor import TypingVisitorBase
-from pygears.typing import Uint, Int, Bool, Queue, typeof, Integral, Fixp, Tuple
+from pygears.typing import Fixp, Integral, typeof
 
 
 class TypeVisitor(TypingVisitorBase):

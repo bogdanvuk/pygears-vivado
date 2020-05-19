@@ -8,7 +8,7 @@ from pygears.sim import sim_log
 from pygears.definitions import ROOT_DIR
 from pygears.util.fileio import save_file
 
-from pygears import config, registry
+from pygears import reg
 from pygears.sim.extens.svsock import SVSockPlugin, CosimulatorUnavailable
 
 
@@ -35,7 +35,7 @@ def xsim(outdir=None, makefile=True, files=None, includes=None, batch=True, seed
 
     kwds = {
         'batch': batch,
-        'seed': seed if seed is not None else registry("sim/rand_seed")
+        'seed': seed if seed is not None else reg["sim/rand_seed"]
     }
 
     if makefile:
@@ -60,4 +60,4 @@ def xsim(outdir=None, makefile=True, files=None, includes=None, batch=True, seed
 class VivadoSVSockPlugin(SVSockPlugin):
     @classmethod
     def bind(cls):
-        config['sim/svsock/backend']['xsim'] = xsim
+        reg['sim/svsock/backend']['xsim'] = xsim
