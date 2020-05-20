@@ -92,7 +92,7 @@ def drvgen(top, intfdef, outdir):
         elif usr_axip.t == 'axi':
             xparams.append(f'"C_{name.upper()}_BASEADDR"')
 
-    modinst = reg('hdlgen/map')[top]
+    modinst = reg['hdlgen/map'][top]
     drvname = modinst.module_name
 
     files_dir = os.path.join(os.path.dirname(__file__), '..', 'drivers')

@@ -2,6 +2,13 @@
 
 {{ snippet.prjgen("ipgen", prjdir, files=files, top=wrap_name) }}
 
+{% for name, cfg in axi_port_cfg.items() %}
+  {% if cfg.t == 'bram' %}
+    {{ snippet.ip_inst("dtibram_" + name, "axi_bram_ctrl", ipdir=os.path.join(prjdir, "ipgen.srcs", "sources_1", "ip"),
+    params={"protocol": "AXI4", "single_port_bram": 1, "ecc_type": 0, "MEM_DEPTH": 16384}) }}
+  {% endif %}
+{% endfor %}
+
 ipx::package_project -import_files -root_dir {{ipdir}}
 
 set_property name {{ip_name}} [ipx::current_core]
