@@ -1,25 +1,16 @@
 import os
-import glob
 from pygears.hdl.sv import SVModuleInst
-
-from pygears_vivado.ipinst import ipinst
+from .ip_resolver import IPResolver
 
 
 class SVVivModuleInst(SVModuleInst):
-    def __init__(self, node):
-        super().__init__(node)
+    def __init__(self, node, lang=None):
+        resolver = IPResolver(node)
+        super().__init__(node, resolver.lang, resolver)
 
     @property
     def is_generated(self):
         return True
-
-    @property
-    def files(self):
-        files = []
-        for ext in ['*.v', '*.vhd', '*.sv']:
-            files.extend(glob.glob(os.path.join(self.ipdir, 'synth', ext)))
-
-        return files
 
     @property
     def include(self):

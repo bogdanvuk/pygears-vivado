@@ -75,7 +75,7 @@ def ipinst(top, resdir=None):
     ipdir = os.path.join(resdir, ipinst)
 
     if glob.glob(os.path.join(ipdir, 'synth', f'{ipinst}.*')):
-        return ipdir
+        return ipdir, ipinst
 
     tclpath = os.path.join(prjdir, 'ippack.tcl')
 
@@ -88,4 +88,4 @@ def ipinst(top, resdir=None):
         shutil.rmtree(ipdir)
         raise Exception(f"Vivado build failed with code: {ret}")
 
-    return ipdir
+    return ipdir, ipinst
