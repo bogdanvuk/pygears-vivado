@@ -16,27 +16,17 @@ class SVVivModuleInst(SVModuleInst):
     def include(self):
         return [os.path.join(self.ipdir, 'hdl')]
 
-    def get_wrapper(self, template_env, module_name):
+    def get_wrap_portmap(self, parent_lang):
         port_map = {}
-        for port in (self.node.in_ports + self.node.out_ports):
-            name = port.basename
-            port_map[f'{name}_tdata'] = f'{name}.data'
-            port_map[f'{name}_tvalid'] = f'{name}.valid'
-            port_map[f'{name}_tready'] = f'{name}.ready'
+        for p in self.node.in_ports + self.node.out_ports:
+            name = p.basename
+            if self.lang == 'sv':
+                port_map[name] = name
+            elif parent_lang == 'sv':
+                port_map[f'{name}_tvalid'] = f'{name}.valid'
+                port_map[f'{name}_tready'] = f'{name}.ready'
+                port_map[f'{name}_tdata'] = f'{name}.data'
+            else:
+                port_map[name] = name
 
-        context = {
-            'wrap_module_name': self.module_name,
-            'module_name': os.path.basename(module_name),
-            'inst_name': os.path.basename(module_name),
-            'intfs': list(self.port_configs),
-            'sigs': self.node.params['signals'],
-            'port_map': port_map,
-            'sig_map': self.node.params['svgen'].get('sig_map', {}),
-            'param_map': {}
-        }
-
-        return template_env.render_local(__file__, 'pygears_wrap.j2', context)
-
-    def get_module(self, template_env):
-        self.ipdir = ipinst(self.node.gear)
-        return self.get_wrapper(template_env, self.ipdir)
+        return port_map

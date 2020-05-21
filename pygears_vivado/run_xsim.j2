@@ -62,6 +62,7 @@ done
 
 {% set switch_lookup = {'sv': '-svlog', 'v': '-vlog', 'vh': '-vlog', 'vhd': '-vhdl'} %}
 
+pushd {{outdir}}
 if [ "$nobuild" == "" ]; then
    xsc {{dti_verif_path}}/sock.c -o {{outdir}}/dpi.so
    xelab {{top_name}} -s {{top_name}}_sim -sv_lib dpi -debug all -relax \
@@ -76,3 +77,5 @@ if [ "$nobuild" == "" ]; then
 fi
 
 xsim {{top_name}}_sim $gui -sv_seed $seed -log xsim.log
+
+popd
