@@ -20,7 +20,7 @@ def xsim(outdir=None, makefile=True, files=None, includes=None, batch=True, seed
     context = {
         'dti_verif_path': dpi_path,
         'outdir': os.path.abspath(outdir),
-        'top_name': 'top',
+        'top_name': '_top',
         'files': files,
         'includes': includes,
     }
