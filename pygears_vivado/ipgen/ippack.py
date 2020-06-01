@@ -28,12 +28,15 @@ def ippack(top, dirs, intfdef, lang, prjdir, files, drv_files):
     for rtl, mod in hdlgen_map.items():
         if isinstance(mod, SVVivModuleInst):
             for f in mod.files:
+                if os.path.splitext(os.path.basename(f))[0] == mod.wrap_module_name:
+                    continue
+
                 try:
                     os.remove(os.path.join(dirs['hdl'], os.path.basename(f)))
                 except FileNotFoundError:
                     pass
 
-            xci = glob.glob(f'{mod.ipdir}/*.xci')[0]
+            xci = glob.glob(f'{mod.resolver.ipdir}/*.xci')[0]
             if xci not in files:
                 files.append(xci)
 
