@@ -25,8 +25,8 @@ class TypeVisitor(TypingVisitorBase):
 
     def visit_queue(self, type_, field):
         self.visit(type_[0], 'data')
-        self.func_reg(self.hier + ['eot'], self.offset, int(type_[1:]), type_[1:])
-        self.offset += int(type_[1:])
+        self.func_reg(self.hier + ['eot'], self.offset, type_[1:].width, type_[1:])
+        self.offset += type_[1:].width
 
     def visit_union(self, type_, field):
         start_offset = self.offset
@@ -36,18 +36,18 @@ class TypeVisitor(TypingVisitorBase):
             self.visit(t, f)
             self.ctrl.pop()
 
-        self.offset = start_offset + int(type_[0])
-        self.func_reg(self.hier.copy() + ['ctrl'], self.offset, int(type_[1]), type_[1])
-        self.offset += int(type_[1])
+        self.offset = start_offset + type_[0].width
+        self.func_reg(self.hier.copy() + ['ctrl'], self.offset, type_[1].width, type_[1])
+        self.offset += type_[1].width
 
     def visit(self, type_, field=None):
         if field:
             self.hier.append(field)
 
-        self.func_reg(self.hier, self.offset, int(type_), type_)
+        self.func_reg(self.hier, self.offset, type_.width, type_)
 
         if typeof(type_, Integral):
-            self.offset += int(type_)
+            self.offset += type_.width
         else:
             super().visit(type_, field)
 
