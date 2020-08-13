@@ -25,7 +25,9 @@ def ipgen(
     generate=True,
     build=True,
     intf=None,
-    prjdir=None):
+    prjdir=None,
+    presynth=False,
+):
 
     if reg['vivado/ipgen/lock']:
         return
@@ -91,7 +93,7 @@ def ipgen(
     #         f"{len(intf)} interface types supplied {intf}, but '{top_mod.name}' has "
     #         f"{len(top_mod.in_ports) + len(top_mod.out_ports)} ports")
     intfdef = get_axi_conf(top_mod, intf)
-    generate_ip(top_mod, outdir, lang, intfdef, prjdir)
+    generate_ip(top_mod, outdir, lang, intfdef, prjdir, presynth=presynth)
 
     if build:
         ret = run(os.path.join(outdir, 'script', 'ippack.tcl'))
@@ -109,5 +111,6 @@ class VivadoIpgenPlugin(IpgenPlugin):
         reg['vivado/ipgen/lock'] = False
 
         conf['parser'].add_argument('--intf', type=str)
+        conf['parser'].add_argument('--presynth', '-p', action='store_false')
 
         conf['parser'].add_argument('--prjdir', type=str)

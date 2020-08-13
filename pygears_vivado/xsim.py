@@ -13,13 +13,15 @@ from pygears.sim.extens.svsock import SVSockPlugin, CosimulatorUnavailable
 
 
 def xsim(outdir=None, makefile=True, files=None, includes=None, batch=True, seed=None):
+    outdir = os.path.abspath(outdir)
+
     if not makefile and not shutil.which('xsim'):
         raise CosimulatorUnavailable
 
     dpi_path = os.path.abspath(os.path.join(ROOT_DIR, 'sim', 'dpi'))
     context = {
         'dti_verif_path': dpi_path,
-        'outdir': os.path.abspath(outdir),
+        'outdir': outdir,
         'top_name': '_top',
         'files': files,
         'includes': includes,

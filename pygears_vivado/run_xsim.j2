@@ -73,7 +73,7 @@ if [ "$nobuild" == "" ]; then
    {% for f in files %}
        {{ switch_lookup[f.rpartition('.')[-1]] }} {{ f }} \
    {% endfor %}
-       --log xelab.log
+       --log log.log
 fi
 
 xsim {{top_name}}_sim $gui -sv_seed $seed -log xsim.log

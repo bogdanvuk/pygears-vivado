@@ -1,11 +1,14 @@
 import os
+import shutil
 from .utils import create_folder_struct, get_folder_struct
 from .ippack import ippack
+from . import IPResolver
 from pygears import reg
 from pygears.core.gear import InSig
-from pygears.hdl import hdlgen
+from pygears.hdl import hdlgen, synth
 from pygears.util.fileio import save_file
 from pygears.hdl.intfs.generate import generate as generate_wrap
+from pygears.core.hier_node import HierVisitorBase
 from .drvgen import drvgen
 
 default_preproc = {
@@ -32,16 +35,59 @@ def preproc_hdl(dirs, mapping):
         fn = os.path.join(dirs['hdl'], fn)
         preproc_file(fn, mapping)
 
+class IPHierVisitor(HierVisitorBase):
+    def __init__(self):
+        self.ips = []
+        self.hdlgen_map = reg['hdlgen/map']
 
-def generate(top, outdir, lang, intfdef, prjdir):
+    def Gear(self, node):
+        if node not in self.hdlgen_map:
+            return
+
+        nodeinst = self.hdlgen_map[node]
+        if isinstance(nodeinst.resolver, IPResolver):
+            self.ips.append(nodeinst)
+
+
+def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
     dirs = get_folder_struct(outdir)
     create_folder_struct(dirs)
 
     drv_files = []
 
-    hdlgen(top, outdir=dirs['hdl'], wrapper=False, copy_files=True, lang=lang)
+    if presynth:
+        hdl_lang = 'v'
+        srcdir = os.path.join(dirs['root'], 'src')
+    else:
+        hdl_lang = lang
+        srcdir = dirs['hdl']
 
-    modinst = reg['hdlgen/map'][top]
+    top = hdlgen(top, outdir=srcdir, wrapper=False, copy_files=True, lang=hdl_lang, toplang=lang)
+
+    topinst = reg['hdlgen/map'][top]
+
+    if topinst.wrapped:
+        shutil.copy(os.path.join(srcdir, f'{topinst.wrap_module_name}.sv'), dirs['hdl'])
+
+    if presynth:
+        if lang == 'sv':
+            # TODO: Use some general file finder (as in hdl resolver)
+            shutil.copy(os.path.join(srcdir, 'dti.sv'), dirs['hdl'])
+
+        v = IPHierVisitor()
+        v.visit(top)
+
+        blackbox = [ip.node.name for ip in v.ips]
+
+        synth(
+            'yosys',
+            top=top,
+            outdir=dirs['hdl'],
+            lang=hdl_lang,
+            synthcmd=None,
+            synthout=os.path.join(dirs['hdl'], topinst.file_basename),
+            blackbox=','.join(blackbox),
+            srcdir=srcdir)
 
     sigs = []
     for s in top.signals.values():
@@ -67,4 +113,4 @@ def generate(top, outdir, lang, intfdef, prjdir):
 
     preproc_hdl(dirs, mapping=default_preproc)
 
-    save_file(f'wrap_{os.path.basename(modinst.file_basename)}', dirs['hdl'], wrp)
+    save_file(f'wrap_{os.path.basename(topinst.inst_name)}.{lang}', dirs['hdl'], wrp)
