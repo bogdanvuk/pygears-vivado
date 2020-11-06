@@ -4,7 +4,7 @@ import os
 import shutil
 
 from subprocess import DEVNULL, Popen
-from pygears.sim import sim_log
+from pygears.sim import log
 from pygears.definitions import ROOT_DIR
 from pygears.util.fileio import save_file
 
@@ -41,7 +41,7 @@ def xsim(outdir=None, makefile=True, files=None, includes=None, batch=True, seed
     }
 
     if makefile:
-        sim_log().info(
+        log.info(
             f"Waiting for manual XSim invocation. Run script: {fname}...")
 
         return None
@@ -53,7 +53,7 @@ def xsim(outdir=None, makefile=True, files=None, includes=None, batch=True, seed
     # stdout = None
     stdout = DEVNULL
 
-    sim_log().info(f'Starting XSim...')
+    log.info(f'Starting XSim...')
 
     return Popen(
         [f'./run_xsim.sh'] + args.split(' '), stdout=stdout, stderr=stdout, cwd=outdir)

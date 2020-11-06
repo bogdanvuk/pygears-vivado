@@ -62,7 +62,7 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
         hdl_lang = lang
         srcdir = dirs['hdl']
 
-    top = hdlgen(top, outdir=srcdir, wrapper=False, copy_files=True, lang=hdl_lang, toplang=lang)
+    top = hdlgen(top, outdir=srcdir, wrapper=False, copy_files=True, lang=hdl_lang, toplang=lang, generate=True)
 
     topinst = reg['hdlgen/map'][top]
 
