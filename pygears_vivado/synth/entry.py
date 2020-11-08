@@ -16,17 +16,16 @@ from .generate import generate as generate_synth
 from .reports import parse_utilization, parse_timing
 
 
-def synth(
-    top,
-    design,
-    outdir=None,
-    include=None,
-    lang='sv',
-    generate=True,
-    build=True,
-    util=False,
-    timing=False,
-    prjdir=None):
+def synth(top,
+          design=None,
+          outdir=None,
+          include=None,
+          lang='sv',
+          generate=True,
+          build=True,
+          util=False,
+          timing=False,
+          prjdir=None):
 
     if reg['vivado/synth/lock']:
         return
@@ -37,9 +36,13 @@ def synth(
     if design is not None:
         design = os.path.abspath(os.path.expanduser(design))
 
+    if isinstance(top, str):
+        top_mod = find(top)
+    else:
+        top_mod = top
+
     if outdir is None:
-        outdir = os.path.join(
-            reg['vivado/iplib'], top if isinstance(top, str) else top.basename)
+        outdir = os.path.join(reg['vivado/iplib'], top.basename)
 
     os.makedirs(outdir, exist_ok=True)
 
@@ -56,11 +59,6 @@ def synth(
     if not generate:
         return
 
-    if isinstance(top, str):
-        top_mod = find(top)
-    else:
-        top_mod = top
-
     if top_mod is None:
         reg['vivado/synth/lock'] = True
         load_rc('.pygears', os.path.dirname(design))
@@ -70,7 +68,8 @@ def synth(
 
     if top_mod is None:
         raise Exception(
-            f'Module "{top}" specified as a IP core top level module, not found in the design "{design}"')
+            f'Module "{top}" specified as a IP core top level module, not found in the design "{design}"'
+        )
 
     if prjdir is None:
         prjdir = tempfile.mkdtemp()

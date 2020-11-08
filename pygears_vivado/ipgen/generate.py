@@ -67,7 +67,10 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
     topinst = reg['hdlgen/map'][top]
 
     if topinst.wrapped:
-        shutil.copy(os.path.join(srcdir, f'{topinst.wrap_module_name}.sv'), dirs['hdl'])
+        try:
+            shutil.copy(os.path.join(srcdir, f'{topinst.wrap_module_name}.sv'), dirs['hdl'])
+        except shutil.SameFileError:
+            pass
 
     if presynth:
         if lang == 'sv':
