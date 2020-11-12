@@ -6,7 +6,7 @@ from pygears.hdl import hdlgen, list_hdl_files
 from pygears.hdl.yosys import synth as yosys_synth
 
 
-def generate(top, outdir, lang, util, timing, prjdir, yosys_preproc=True):
+def generate(top, outdir, lang, util, timing, prjdir, part, yosys_preproc=True):
 
     if lang not in ['sv', 'v']:
         raise Exception(f"Synth test unknown language: {lang}")
@@ -37,7 +37,8 @@ def generate(top, outdir, lang, util, timing, prjdir, yosys_preproc=True):
         'files': files,
         'top': top_name,
         'util': util,
-        'timing': timing
+        'timing': timing,
+        'part': part
     }
 
     env = jinja2.Environment(

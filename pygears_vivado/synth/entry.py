@@ -25,6 +25,7 @@ def synth(top,
           build=True,
           util=False,
           timing=False,
+          part='xc7z020clg484-1',
           prjdir=None):
 
     if reg['vivado/synth/lock']:
@@ -79,7 +80,7 @@ def synth(top,
 
     include += reg[f'{lang}gen/include']
 
-    generate_synth(top_mod, outdir, lang, util, timing, prjdir)
+    generate_synth(top_mod, outdir, lang, util, timing, prjdir, part)
 
     if build:
         ret = run(os.path.join(outdir, 'synth.tcl'))
@@ -106,3 +107,4 @@ class VivadoSynthPlugin(SynthPlugin):
         conf['parser'].add_argument('--prjdir', type=str)
         conf['parser'].add_argument('--util', action='store_true')
         conf['parser'].add_argument('--timing', action='store_true')
+        conf['parser'].add_argument('--part', type=str)
