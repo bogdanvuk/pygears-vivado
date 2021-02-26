@@ -2,7 +2,7 @@ set testdir [lindex $argv 0]
 set prjdir [lindex $argv 1]
 set testname [lindex $argv 2]
 
-set workspace $prjdir/testprj/testprj.sdk
+set workspace $prjdir/$testname/$testname.sdk
 
 hsi::set_param board.repoPaths $workspace/hwtest/board/
 

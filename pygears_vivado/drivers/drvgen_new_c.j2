@@ -38,7 +38,7 @@ void {{module_name}}_{{name}}_recv({{module_name}}* h, void* data, size_t len) {
 
 {% for name, p in intfdef.items() if p.t == 'axi' and 'r' in p.direction %}
   {% set width = p.comp['rdata'].params['rdata'] %}
-  {% if width < 64 %}
+  {% if width <= 64 %}
     {% if p.comp['araddr'].port %}
 uint{{width}}_t {{module_name}}_{{name}}_read({{module_name}}* h, uintptr_t addr) {
     return pgaxi_read{{width}}(&h->{{name}}_h, addr * {{p.comp['rdata'].params['rdata'] // 8}});
@@ -53,7 +53,7 @@ uint{{width}}_t {{module_name}}_{{name}}_read({{module_name}}* h) {
 
 {% for name, p in intfdef.items() if p.t == 'axi' and 'w' in p.direction %}
   {% set width = p.comp['wdata'].params['wdata'] %}
-  {% if width < 64 %}
+  {% if width <= 64 %}
     {% if p.comp['awaddr'].port %}
 void {{module_name}}_{{name}}_write({{module_name}}* h, uint{{width}}_t val, uintptr_t addr) {
     pgaxi_write{{width}}(&h->{{name}}_h, val, addr * {{p.comp['wdata'].params['wdata'] // 8}});

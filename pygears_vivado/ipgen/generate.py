@@ -30,10 +30,11 @@ def preproc_file(fn, mapping):
         content_file.write(content)
 
 
-def preproc_hdl(dirs, mapping):
-    for fn in os.listdir(dirs['hdl']):
-        fn = os.path.join(dirs['hdl'], fn)
+def preproc_hdl(folder, mapping=default_preproc):
+    for fn in os.listdir(folder):
+        fn = os.path.join(folder, fn)
         preproc_file(fn, mapping)
+
 
 class IPHierVisitor(HierVisitorBase):
     def __init__(self):
@@ -62,13 +63,20 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
         hdl_lang = lang
         srcdir = dirs['hdl']
 
-    top = hdlgen(top, outdir=srcdir, wrapper=False, copy_files=True, lang=hdl_lang, toplang=lang, generate=True)
+    top = hdlgen(top,
+                 outdir=srcdir,
+                 wrapper=False,
+                 copy_files=True,
+                 lang=hdl_lang,
+                 toplang=lang,
+                 generate=True)
 
     topinst = reg['hdlgen/map'][top]
 
     if topinst.wrapped:
         try:
-            shutil.copy(os.path.join(srcdir, f'{topinst.wrap_module_name}.sv'), dirs['hdl'])
+            shutil.copy(os.path.join(srcdir, f'{topinst.wrap_module_name}.sv'),
+                        dirs['hdl'])
         except shutil.SameFileError:
             pass
 
@@ -82,15 +90,14 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
 
         blackbox = [ip.node.name for ip in v.ips]
 
-        synth(
-            'yosys',
-            top=top,
-            outdir=dirs['hdl'],
-            lang=hdl_lang,
-            synthcmd=None,
-            synthout=os.path.join(dirs['hdl'], topinst.file_basename),
-            blackbox=','.join(blackbox),
-            srcdir=srcdir)
+        synth('yosys',
+              top=top,
+              outdir=dirs['hdl'],
+              lang=hdl_lang,
+              synthcmd=None,
+              synthout=os.path.join(dirs['hdl'], topinst.file_basename),
+              blackbox=','.join(blackbox),
+              srcdir=srcdir)
 
     sigs = []
     for s in top.signals.values():
@@ -105,15 +112,15 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
 
     wrp, files = generate_wrap(top, intfdef)
 
-    ippack(
-        top,
-        dirs,
-        intfdef=intfdef,
-        lang=lang,
-        prjdir=prjdir,
-        files=files,
-        drv_files=drv_files)
+    ippack(top,
+           dirs,
+           intfdef=intfdef,
+           lang=lang,
+           prjdir=prjdir,
+           files=files,
+           drv_files=drv_files)
 
-    preproc_hdl(dirs, mapping=default_preproc)
+    preproc_hdl(dirs['hdl'], mapping=default_preproc)
 
-    save_file(f'wrap_{os.path.basename(topinst.inst_name)}.{lang}', dirs['hdl'], wrp)
+    save_file(f'wrap_{os.path.basename(topinst.inst_name)}.{lang}',
+              dirs['hdl'], wrp)
