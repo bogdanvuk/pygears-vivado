@@ -15,7 +15,8 @@ set_property name {{ip_name}} [ipx::current_core]
 set_property display_name {{ip_name}} [ipx::current_core]
 set_property description {{description}} [ipx::current_core]
 set_property taxonomy /AXI_Infrastructure [ipx::current_core]
-set_property supported_families {zynq Production zynquplus Production artix7 Production kintex7 Production kintexu Production} [ipx::current_core]
+set_property supported_families {zynq Production zynquplus Production artix7 Production kintex7 Production kintexu Production virtexuplus Beta virtexuplusHBM Beta} [ipx::current_core]
+
 
 {% if drv_files %}
 ipx::add_file_group -type software_driver {} [ipx::current_core]
