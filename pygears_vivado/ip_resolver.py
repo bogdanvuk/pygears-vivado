@@ -30,8 +30,8 @@ class IPResolver(ResolverBase):
     @property
     def files(self):
         files = []
-        for ext in ['*.v', '*.vhd', '*.sv']:
-            files.extend(glob.glob(os.path.join(self.ipdir, 'synth', ext)))
+        for d in ['synth', 'hdl']:
+            files.extend(glob.glob(os.path.join(self.ipdir, d, '*')))
 
         return files
 
