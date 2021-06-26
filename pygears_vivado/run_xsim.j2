@@ -60,20 +60,24 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-{% set switch_lookup = {'sv': '-svlog', 'v': '-vlog', 'vh': '-vlog', 'vhd': '-vhdl'} %}
+{% set switch_lookup = {'sv': '-svlog', 'v': '-vlog', 'vhd': '-vhdl'} %}
 
 pushd {{outdir}}
 if [ "$nobuild" == "" ]; then
    xsc {{dti_verif_path}}/sock.c -o {{outdir}}/dpi.so
+   xvlog -work work --sv $XILINX_VIVADO/data/verilog/src/glbl.v
    xelab {{top_name}} -s {{top_name}}_sim -sv_lib dpi -debug all -relax \
        -L work -L xpm -L unisims_ver -L unimacro_ver -L secureip \
    {% for i in includes %}
        -i {{i}} \
    {% endfor %}
    {% for f in files %}
+       {% if f.rpartition('.')[-1] in switch_lookup %}
        {{ switch_lookup[f.rpartition('.')[-1]] }} {{ f }} \
+       {% endif %}
    {% endfor %}
-       --log log.log
+       --log log.log \
+       glbl
 fi
 
 xsim {{top_name}}_sim $gui -sv_seed $seed -log xsim.log

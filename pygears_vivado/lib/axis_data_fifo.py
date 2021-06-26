@@ -2,6 +2,7 @@ import os
 from pygears import gear
 from pygears.hdl import hdlgen
 from pygears.typing import Uint
+from pygears.typing.math import ceil_chunk
 from pygears.core.gear import InSig
 from pygears import Intf
 from pygears_vivado.ipinst import ipinst
@@ -29,7 +30,7 @@ async def axis_data_fifo(
 
 @gear
 def viv_fifo(din, *, depth):
-    return axis_data_fifo(din, fifo_depth=depth)
+    return axis_data_fifo(din >> Uint[ceil_chunk(din.dtype.width, 8)], fifo_depth=depth) >> din.dtype
 
 
 # from pygears.lib import decouple
