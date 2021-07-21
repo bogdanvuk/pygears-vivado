@@ -50,7 +50,7 @@ class IPHierVisitor(HierVisitorBase):
             self.ips.append(nodeinst)
 
 
-def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
+def generate(top, outdir, lang, intfdef, prjdir, presynth=False, rst=True):
     dirs = get_folder_struct(outdir)
     create_folder_struct(dirs)
 
@@ -110,7 +110,29 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False):
 
     drv_files = drvgen(top, intfdef, dirs['driver'])
 
-    wrp, files = generate_wrap(top, intfdef)
+    wrp, files = generate_wrap(top, intfdef, rst=rst)
+
+    for p in intfdef.values():
+        if p.t == 'axi':
+            from pygears.lib.strb_combiner import strb_combiner
+            from pygears import Intf
+            from pygears.typing import Tuple, Array, Uint
+
+            num = p.comp['wdata'].params['wstrb']
+
+            # strb_combiner generation requires deeper recursion limit for large buses
+            import sys
+            sys.setrecursionlimit(1500)
+
+            strb_combiner(Intf(Tuple[Array[Uint[8], num], Uint[num]]), name=f'{p.name}_strb_combiner')
+            hdlgen(f'/{p.name}_strb_combiner',
+                   outdir=srcdir,
+                   wrapper=False,
+                   copy_files=True,
+                   lang=hdl_lang,
+                   toplang=lang,
+                   generate=True)
+
 
     ippack(top,
            dirs,

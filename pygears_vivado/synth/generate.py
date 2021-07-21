@@ -41,6 +41,7 @@ def generate(top, outdir, lang, util, timing, prjdir, part,
 
     jinja_context = {
         'res_dir': prjdir,
+        'outdir': outdir,
         'files': files,
         'top': top_name,
         'util': util,
@@ -50,6 +51,10 @@ def generate(top, outdir, lang, util, timing, prjdir, part,
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(
         searchpath=os.path.dirname(__file__)))
+
+    if timing:
+        with open(f'{outdir}/synth.xdc', 'w') as f:
+            f.write(f'create_clock -name clk -period {timing} [get_ports clk]\n')
 
     env.get_template('synth.j2').stream(jinja_context).dump(
         f'{outdir}/synth.tcl')

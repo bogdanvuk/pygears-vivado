@@ -27,6 +27,7 @@ def ipgen(
     intf=None,
     prjdir=None,
     presynth=False,
+    rst=True,
 ):
 
     if reg['vivado/ipgen/lock']:
@@ -90,7 +91,7 @@ def ipgen(
             intf[p.basename] = 'axis'
 
     intfdef = get_axi_conf(top_mod, intf)
-    generate_ip(top_mod, outdir, lang, intfdef, prjdir, presynth=presynth)
+    generate_ip(top_mod, outdir, lang, intfdef, prjdir, presynth=presynth, rst=rst)
 
     if build:
         ret = run(os.path.join(outdir, 'script', 'ippack.tcl'))

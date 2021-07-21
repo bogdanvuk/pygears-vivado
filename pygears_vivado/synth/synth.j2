@@ -2,6 +2,10 @@ create_project -force synth_test {{res_dir}} -part {{part}}
 
 add_files { {{' '.join(files)}} }
 
+{% if timing %}
+add_files -fileset constrs_1 -norecurse {{outdir}}/synth.xdc
+{% endif %}
+
 set_property top {{top}} [current_fileset]
 
 update_compile_order -fileset sources_1
