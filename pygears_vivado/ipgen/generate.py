@@ -50,7 +50,7 @@ class IPHierVisitor(HierVisitorBase):
             self.ips.append(nodeinst)
 
 
-def generate(top, outdir, lang, intfdef, prjdir, presynth=False, rst=True):
+def generate(top, outdir, lang, intfdef, prjdir, presynth=False, rst=True, drvgen=False):
     dirs = get_folder_struct(outdir)
     create_folder_struct(dirs)
 
@@ -108,14 +108,17 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False, rst=True):
         else:
             sigs.append(s)
 
-    drv_files = drvgen(top, intfdef, dirs['driver'])
+    if drvgen:
+        drv_files = drvgen(top, intfdef, dirs['driver'])
+    else:
+        drv_files = None
 
     wrp, files = generate_wrap(top, intfdef, rst=rst)
 
     for p in intfdef.values():
         if p.t == 'axi':
             from pygears.lib.strb_combiner import strb_combiner
-            from pygears import Intf
+            from pygears import Intf, find
             from pygears.typing import Tuple, Array, Uint
 
             num = p.comp['wdata'].params['wstrb']
@@ -124,8 +127,11 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False, rst=True):
             import sys
             sys.setrecursionlimit(1500)
 
+            cur = reg['gear/current_module']
+            reg['gear/current_module'] = top
             strb_combiner(Intf(Tuple[Array[Uint[8], num], Uint[num]]), name=f'{p.name}_strb_combiner')
-            hdlgen(f'/{p.name}_strb_combiner',
+            reg['gear/current_module'] = cur
+            hdlgen(f'{top.name}/{p.name}_strb_combiner',
                    outdir=srcdir,
                    wrapper=False,
                    copy_files=True,
@@ -146,3 +152,8 @@ def generate(top, outdir, lang, intfdef, prjdir, presynth=False, rst=True):
 
     save_file(f'wrap_{os.path.basename(topinst.inst_name)}.{lang}',
               dirs['hdl'], wrp)
+
+    # TODO: Remove this when memoization gets smarter. Right now this removes
+    # the problem where memoization can make one IP rely on files stored in
+    # another IP without proper copying
+    reg['hdlgen/map'].clear()

@@ -41,14 +41,15 @@ def ippack(top, dirs, intfdef, lang, prjdir, files, drv_files):
                 files.append(xci)
 
     c_files = []
-    for f in drv_files:
-        if f[-3:] in ['mdd', 'tcl']:
-            continue
+    if drv_files:
+        for f in drv_files:
+            if f[-3:] in ['mdd', 'tcl']:
+                continue
 
-        if os.path.basename(f) == 'Makefile':
-            continue
+            if os.path.basename(f) == 'Makefile':
+                continue
 
-        c_files.append(os.path.relpath(f, dirs['root']))
+            c_files.append(os.path.relpath(f, dirs['root']))
 
     context = {
         'prjdir': prjdir,
