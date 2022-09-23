@@ -16,7 +16,7 @@ def ippack(top, dirs, intfdef, lang, prjdir, files, drv_files):
 
     hdlgen_map = reg['hdlgen/map']
     modinst = hdlgen_map[top]
-    wrap_name = f'wrap_{modinst.module_name}'
+    wrap_name = f'wrap_{modinst.wrap_module_name}'
 
     for fn in files:
         try:
